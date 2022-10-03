@@ -50,7 +50,7 @@ end;
     end
 end;
 
-@testset "temporal_shortest_beteenness" begin
+@testset "temporal_shortest_betweenness" begin
     @testset "from small file" begin
         tg::temporal_graph = load_temporal_graph("graphs/test/small.txt", " ")
         tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
