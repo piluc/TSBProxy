@@ -27,25 +27,24 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64)::Array{Tuple{Int64
     return sample_pairs
 end
 
-function empirical_variance(tilde_b::Array{Float64}, v::Int64)::Float64
+function empirical_variance(tilde_b::Array{Float64}, sample_size::Int64, v::Int64)::Float64
+    n::Int64 = div(length(tilde_b), sample_size)
     variance::Float64 = 0
-    l::Int64 = length(tilde_b[v, :])
-    for i in 1:l
-        for j in (i+1):l
-            variance += (((tilde_b[v, i] - tilde_b[v, j]) / l)^2)
+    for i in 1:sample_size
+        for j in (i+1):sample_size
+            variance += (((tilde_b[(i-1)*n+v] - tilde_b[(j-1)*n+v]) / sample_size)^2)
         end
     end
-    return variance / (l * (l - 1))
+    return variance / (sample_size * (sample_size - 1))
 end
 
-function theoretical_error_bound(tilde_b::Array{Float64}, eta::Float64)::Float64
-    n::Int64 = length(tilde_b[:, 1])
-    l::Int64 = length(tilde_b[1, :])
+function theoretical_error_bound(tilde_b::Array{Float64}, sample_size::Int64, eta::Float64)::Float64
+    n::Int64 = div(length(tilde_b), sample_size)
     error::Float64 = 0.0
     max_error::Float64 = 0.0
     for u in 1:n
-        variance::Float64 = empirical_variance(tilde_b, u)
-        error = sqrt(2 * variance * log(4 * n / eta) / l) + 7 * log(4 * n / eta) / (3 * (l - 1))
+        variance::Float64 = empirical_variance(tilde_b, sample_size, u)
+        error = sqrt(2 * variance * log(4 * n / eta) / sample_size) + 7 * log(4 * n / eta) / (3 * (sample_size - 1))
         if (error > max_error)
             max_error = error
         end
@@ -62,7 +61,7 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
     tal::Array{Array{Tuple{Int64,Int64}}} = temporal_adjacency_list(tg)
     tn_index::Dict{Tuple{Int64,Int64},Int64} = temporal_node_index(tg)
     bfs_ds::BFS_ONBRA_data_structure = BFS_ONBRA_data_structure(tg.num_nodes, length(keys(tn_index)))
-    tilde_b::Array{Float64} = zeros(tg.num_nodes, sample_size)
+    tilde_b::Array{Float64} = zeros(sample_size * tg.num_nodes)
     u::Int64 = -1
     w::Int64 = -1
     t::Int64 = -1
@@ -153,7 +152,7 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
             temporal_node = dequeue!(bfs_ds.backward_queue)
             tni = tn_index[(temporal_node[1], temporal_node[2])]
             if temporal_node[1] != s
-                tilde_b[temporal_node[1], i] += (bfs_ds.sigma_z[tni] * (bfs_ds.sigma_t[tni] / bfs_ds.sigma[z]))
+                tilde_b[(i-1)*tg.num_nodes+temporal_node[1]] += (bfs_ds.sigma_z[tni] * (bfs_ds.sigma_t[tni] / bfs_ds.sigma[z]))
                 for pred in bfs_ds.predecessors[tni]
                     tni_w = tn_index[(pred[1], pred[2])]
                     bfs_ds.sigma_z[tni_w] += bfs_ds.sigma_z[tni]
@@ -175,15 +174,19 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
 end
 
 function onbra(tg::temporal_graph, sample_size::Int64, epsilon::Float64, eta::Float64, verbose_step::Int64)
-    tilde_b::Array{Float64}, global_t::Float64 = onbra_sample(tg, sample_size, verbose_step)
-    error_bound::Float64 = theoretical_error_bound(tilde_b, eta)
+    global_sample_size::Int64 = sample_size
+    tilde_b::Array{Float64}, global_t::Float64 = onbra_sample(tg, sample_size, 0)
+    error_bound::Float64 = theoretical_error_bound(tilde_b, global_sample_size, eta)
+    println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
     t_b::Array{Float64} = []
     t::Float64 = 0.0
     while (error_bound > epsilon)
-        t_b, t = onbra_sample(tg, sample_size, verbose_step)
-        tilde_b = hcat(tilde_b, t_b)
+        t_b, t = onbra_sample(tg, sample_size, 0)
+        append!(tilde_b, t_b)
         global_t += t
-        error_bound = theoretical_error_bound(tilde_b, eta)
+        global_sample_size += sample_size
+        error_bound = theoretical_error_bound(tilde_b, global_sample_size, eta)
+        println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
     end
     return tilde_b, global_t
 end
