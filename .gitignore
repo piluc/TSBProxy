@@ -28,3 +28,6 @@ Manifest.toml
 
 # Graphs
 graphs/
+
+# Centralities
+scores/
