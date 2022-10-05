@@ -31,3 +31,6 @@ graphs/
 
 # Centralities
 scores/
+
+# Analysis
+results/

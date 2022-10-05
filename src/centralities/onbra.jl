@@ -52,7 +52,7 @@ function theoretical_error_bound(tilde_b::Array{Float64}, sample_size::Int64, et
     return max_error
 end
 
-function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Float64}
+function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Array{Float64}}
     start_time = time()
     sample = test_sample
     if (length(sample) == 0 || length(sample) != sample_size)
@@ -70,7 +70,9 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
     tni_w::Int64 = -1
     temporal_node::Tuple{Int64,Int64} = (-1, -1)
     processed_so_far::Int64 = 0
+    exec_time::Array{Float64} = zeros(sample_size)
     for i in 1:sample_size
+        exec_time[i] = time()
         s = sample[i][1]
         z = sample[i][2]
         for u in 1:tg.num_nodes
@@ -163,6 +165,7 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
                 end
             end
         end
+        exec_time[i] = time() - exec_time[i]
         processed_so_far = processed_so_far + 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
@@ -170,23 +173,28 @@ function onbra_sample(tg::temporal_graph, sample_size::Int64, verbose_step::Int6
         end
     end
     finish_total::Float64 = round(time() - start_time; digits=4)
-    return tilde_b, finish_total
+    return tilde_b, exec_time
 end
 
-function onbra(tg::temporal_graph, sample_size::Int64, epsilon::Float64, eta::Float64, verbose_step::Int64)
-    global_sample_size::Int64 = sample_size
-    tilde_b::Array{Float64}, global_t::Float64 = onbra_sample(tg, sample_size, 0)
-    error_bound::Float64 = theoretical_error_bound(tilde_b, global_sample_size, eta)
-    println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
-    t_b::Array{Float64} = []
-    t::Float64 = 0.0
-    while (error_bound > epsilon)
-        t_b, t = onbra_sample(tg, sample_size, 0)
-        append!(tilde_b, t_b)
-        global_t += t
-        global_sample_size += sample_size
-        error_bound = theoretical_error_bound(tilde_b, global_sample_size, eta)
-        println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
-    end
-    return tilde_b, global_t
+# function onbra(tg::temporal_graph, sample_size::Int64, epsilon::Float64, eta::Float64, verbose_step::Int64)
+#     global_sample_size::Int64 = sample_size
+#     tilde_b::Array{Float64}, global_t::Float64 = onbra_sample(tg, sample_size, 0)
+#     error_bound::Float64 = theoretical_error_bound(tilde_b, global_sample_size, eta)
+#     println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
+#     t_b::Array{Float64} = []
+#     t::Float64 = 0.0
+#     while (error_bound > epsilon)
+#         t_b, t = onbra_sample(tg, sample_size, 0)
+#         append!(tilde_b, t_b)
+#         global_t += t
+#         global_sample_size += sample_size
+#         error_bound = theoretical_error_bound(tilde_b, global_sample_size, eta)
+#         println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
+#     end
+#     return tilde_b, global_t
+# end
+
+function onbra_avg_time(tg::temporal_graph, sample_size::Int64)
+    _, exec_time = onbra(tg, sample_size, 0)
+    println("Average ONBRA execution time: " * string(mean(exec_time)) * " (" * string(std(exec_time)) * ")")
 end
