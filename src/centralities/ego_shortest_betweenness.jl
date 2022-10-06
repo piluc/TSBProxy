@@ -52,7 +52,7 @@ function temporal_ego_betweenness_centrality(tg::temporal_graph, verbose_step::I
     temporal_ego_betweenness_centrality::Array{Float64} = zeros(tg.num_nodes)
     processed_so_far::Int64 = 0
     for e in 1:tg.num_nodes
-        temporal_ego_betweenness_centrality[e], _ = temporal_shortest_betweenness(ego_network(tg, e), 0)[1]
+        temporal_ego_betweenness_centrality[e] = temporal_shortest_betweenness(ego_network(tg, e), 0)[1][1]
         processed_so_far += 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
