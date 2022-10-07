@@ -66,4 +66,24 @@ end;
         tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
         @test tsb == [0.0]
     end
+    @testset "from star file" begin
+        tg::temporal_graph = load_temporal_graph("graphs/test/star.txt", " ")
+        tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
+        @test isapprox(collect.(tsb), collect.([0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    end
+    @testset "from path file" begin
+        tg::temporal_graph = load_temporal_graph("graphs/test/path.txt", " ")
+        tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
+        @test isapprox(collect.(tsb), collect.([0.0, 4.0, 6.0, 6.0, 4.0, 0.0]))
+    end
+    @testset "from lollipop file" begin
+        tg::temporal_graph = load_temporal_graph("graphs/test/lollipop.txt", " ")
+        tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
+        @test isapprox(collect.(tsb), collect.([0.0, 0.0, 0.0, 12.0, 12.0, 10.0, 6.0, 0.0]))
+    end
+    @testset "from multipath file" begin
+        tg::temporal_graph = load_temporal_graph("graphs/test/multipath.txt", " ")
+        tsb::Array{Float64}, _ = temporal_shortest_betweenness(tg, 0)
+        @test isapprox(collect.(tsb), collect.([0.0, 1.0, 1.0, 3.0, 0.0]))
+    end
 end;

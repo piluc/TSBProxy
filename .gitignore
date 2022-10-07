@@ -35,6 +35,7 @@ scores/
 # Analysis
 results/
 times/
+times_maserati/
 
 # Extra code
 www/

@@ -93,7 +93,7 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64):
                 if bfs_ds.dist_t[tni_w] == -1
                     bfs_ds.dist_t[tni_w] = bfs_ds.dist_t[tni] + 1
                     if bfs_ds.dist[w] == -1
-                        bfs_ds.dist[w] = bfs_ds.dist_t[tni] + 1
+                        bfs_ds.dist[w] = bfs_ds.dist_t[tni_w]
                     end
                     enqueue!(bfs_ds.queue, neig)
                     push!(bfs_ds.stack, neig)
