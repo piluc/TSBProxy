@@ -4,7 +4,7 @@ include("../src/graphs/temporal_graph.jl")
 
 @testset "load_temporal_graph" begin
     @testset "from sorted file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small.txt", " ")
         @test tg.num_nodes == 5
         @test tg.temporal_edges == [(1, 2, 1), (1, 2, 2), (1, 2, 3), (1, 2, 4), (1, 2, 5), (1, 2, 6), (2, 3, 7), (2, 4, 8), (3, 4, 9), (4, 3, 10), (3, 5, 11)]
         @test tg.file_id == ["1", "2", "3", "4", "5"]
@@ -12,7 +12,7 @@ include("../src/graphs/temporal_graph.jl")
     end
 
     @testset "from shuffled file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small_shuffled.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small_shuffled.txt", " ")
         @test tg.num_nodes == 5
         @test tg.temporal_edges == [(1, 2, 1), (1, 2, 2), (1, 2, 3), (1, 2, 4), (1, 2, 5), (1, 2, 6), (2, 3, 7), (2, 5, 8), (3, 5, 9), (5, 3, 10), (3, 4, 11)]
         @test tg.file_id == ["1", "2", "3", "5", "4"]
@@ -20,7 +20,7 @@ include("../src/graphs/temporal_graph.jl")
     end
 
     @testset "from alphabetic file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small_alpha.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small_alpha.txt", " ")
         @test tg.num_nodes == 5
         @test tg.temporal_edges == [(1, 2, 1), (1, 2, 2), (1, 2, 3), (1, 2, 4), (1, 2, 5), (1, 2, 6), (2, 3, 7), (2, 5, 8), (3, 5, 9), (5, 3, 10), (3, 4, 11)]
         @test tg.file_id == ["a", "b", "c", "e", "d"]
@@ -28,7 +28,7 @@ include("../src/graphs/temporal_graph.jl")
     end
 
     @testset "from self_loop file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/self_loop.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/self_loop.txt", " ")
         @test tg.num_nodes == 1
         @test tg.temporal_edges == [(1, 1, 1)]
         @test tg.file_id == ["121"]
@@ -38,7 +38,7 @@ end;
 
 @testset "temporal_adjacency_list" begin
     @testset "from small file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small.txt", " ")
         tal::Array{Array{Tuple{Int64,Int64}}} = temporal_adjacency_list(tg)
         @test tal[1] == [(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6)]
         @test tal[2] == [(3, 7), (4, 8)]
@@ -47,7 +47,7 @@ end;
     end
 
     @testset "from one_edge file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/one_edge.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/one_edge.txt", " ")
         tal::Array{Array{Tuple{Int64,Int64}}} = temporal_adjacency_list(tg)
         @test tal[1] == [(2, 1)]
         @test tal[2] == []

@@ -69,7 +69,7 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64):
             bfs_ds.dist[u] = -1
             bfs_ds.sigma[u] = 0
         end
-        for tn in 1:lastindex(bfs_ds.dist_t)
+        for tn in 1:(length(tn_index))
             bfs_ds.sigma_t[tn] = 0
             bfs_ds.delta_sh[tn] = 0
             bfs_ds.dist_t[tn] = -1
@@ -81,7 +81,9 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64):
         bfs_ds.dist[s] = 0
         bfs_ds.dist_t[tni] = 0
         enqueue!(bfs_ds.queue, (s, 0))
+        iter = 0
         while length(bfs_ds.queue) != 0
+            iter += 1
             temporal_node = dequeue!(bfs_ds.queue)
             u = temporal_node[1]
             t = temporal_node[2]

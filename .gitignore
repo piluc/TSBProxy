@@ -27,7 +27,8 @@ Manifest.toml
 .DS_Store
 
 # Graphs
-graphs/
+graphs/all/
+graphs/www/
 
 # Centralities
 scores/
@@ -36,6 +37,3 @@ scores/
 results/
 times/
 times_maserati/
-
-# Extra code
-www/

@@ -5,7 +5,7 @@ include("../src/centralities/pass_through_degree.jl")
 
 @testset "edge_time_range" begin
     @testset "from small file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small.txt", " ")
         te_min::Vector{Pair{Tuple{Int64,Int64},Int64}}, te_max::Vector{Pair{Tuple{Int64,Int64},Int64}} = edge_time_range(tg)
         @test te_min[1] == ((1, 2) => 1) && te_max[1] == ((1, 2) => 6)
         @test te_min[2] == ((2, 3) => 7) && te_max[2] == ((2, 3) => 7)
@@ -16,13 +16,13 @@ include("../src/centralities/pass_through_degree.jl")
         @test length(te_min) == 6 && length(te_max) == 6
     end
     @testset "from one edge file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/one_edge.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/one_edge.txt", " ")
         te_min::Vector{Pair{Tuple{Int64,Int64},Int64}}, te_max::Vector{Pair{Tuple{Int64,Int64},Int64}} = edge_time_range(tg)
         @test te_min[1] == ((1, 2) => 1) && te_max[1] == ((1, 2) => 1)
         @test length(te_min) == 1 && length(te_max) == 1
     end
     @testset "from self_loop file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/self_loop.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/self_loop.txt", " ")
         te_min::Vector{Pair{Tuple{Int64,Int64},Int64}}, te_max::Vector{Pair{Tuple{Int64,Int64},Int64}} = edge_time_range(tg)
         @test te_min[1] == ((1, 1) => 1) && te_max[1] == ((1, 1) => 1)
         @test length(te_min) == 1 && length(te_max) == 1
@@ -42,17 +42,17 @@ end;
 
 @testset "pass_through_degree" begin
     @testset "from small file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/small.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/small.txt", " ")
         ptd::Array{Float64}, _ = pass_through_degree(tg)
         @test isapprox(collect.(ptd), collect.([0.0, 2.0, 3.0, 2.0, 0.0]))
     end
     @testset "from one edge file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/one_edge.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/one_edge.txt", " ")
         ptd::Array{Float64}, _ = pass_through_degree(tg)
         @test isapprox(collect.(ptd), collect.([0.0, 0.0]))
     end
     @testset "from self_loop file" begin
-        tg::temporal_graph = load_temporal_graph("graphs/test/self_loop.txt", " ")
+        tg::temporal_graph = load_temporal_graph("test/graphs/self_loop.txt", " ")
         ptd::Array{Float64}, _ = pass_through_degree(tg)
         @test isapprox(collect.(ptd), collect.([0.0]))
     end
