@@ -66,7 +66,7 @@ function one_centrality(args::Array{String})
     end
 end
 
-function main()
+function execute_all_but_onbra()
     network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
     centrality_name::Array{String} = ["tsb", "egotsb", "egoprefix", "prefix", "ptd"]
     for fn in network_name
@@ -78,4 +78,14 @@ function main()
     end
 end
 
-main()
+function execute_onbra()
+    # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
+    network_name::Array{String} = ["00_hospital_ward"]
+    for fn in network_name
+        tg::temporal_graph = load_temporal_graph("graphs/" * fn * ".txt", " ")
+        _, t = onbra(tg, 100, 0)
+        println("ONBRA average execution time: ", t[1], " (", t[2], ")")
+    end
+end
+
+# execute_all_but_onbra()
