@@ -20,7 +20,7 @@ function temporal_prefix_foremost_betweenness(tg::temporal_graph, verbose_step::
     w::Int64 = -1
     v::Int64 = -1
     t_w::Int64 = -1
-    temporal_edge::Tuple{Int64,Int64,Int64} = (-1,-1,-1,-1)
+    temporal_edge::Tuple{Int64,Int64,Int64} = (-1,-1,-1)
     processed_so_far::Int64 = 0
     for s in 1:tg.num_nodes
         for u in 1:tg.num_nodes
@@ -41,16 +41,9 @@ function temporal_prefix_foremost_betweenness(tg::temporal_graph, verbose_step::
             t_w = temporal_edge[3]
             if bfs_ds.t_min[w] == -1
                 bfs_ds.t_min[w] = t_w
-<<<<<<< HEAD
-                push!(bfs_ds.stack, w)
-                for neig in next_temporal_neighbors(tal, w, t_w)
-                    enqueue!(bfs_ds.priority_queue, (w, neig[1], neig[2], unique_id), neig[2])
-                    unique_id += 1
-=======
                 push!(bfs_ds.stack,w)
                 for neig in next_temporal_neighbors(tal,w,t_w)
                     enqueue!(bfs_ds.priority_queue,(w,neig[1],neig[2]),neig[2])
->>>>>>> origin/develop
                 end
             end
             if bfs_ds.t_min[w] == t_w
