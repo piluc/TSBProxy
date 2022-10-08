@@ -5,10 +5,10 @@ struct BFS_prefix_foremost_betweenness
     delta::Array{Float64}
     predecessors::Array{Set{Int64}}
     # priority queue Q and Stack S
-    priority_queue::PriorityQueue{Tuple{Int64,Int64,Int64,Int64},Int64}
+    priority_queue::PriorityQueue{Tuple{Int64,Int64,Int64},Int64}
     stack::Stack{Int64}
     function BFS_prefix_foremost_betweenness(nn::Int64)
-        return new(Array{Int64}(undef,nn),Array{UInt128}(undef,nn),Array{Float64}(undef,nn),Array{Set{Int64}}(undef,nn), PriorityQueue{Tuple{Int64,Int64,Int64,Int64},Int64}(),Stack{Int64}() )
+        return new(Array{Int64}(undef,nn),Array{UInt128}(undef,nn),Array{Float64}(undef,nn),Array{Set{Int64}}(undef,nn), PriorityQueue{Tuple{Int64,Int64,Int64},Int64}(),Stack{Int64}() )
     end
 end
 
@@ -20,9 +20,8 @@ function temporal_prefix_foremost_betweenness(tg::temporal_graph, verbose_step::
     w::Int64 = -1
     v::Int64 = -1
     t_w::Int64 = -1
-    temporal_edge::Tuple{Int64,Int64,Int64,Int64} = (-1,-1,-1,-1)
+    temporal_edge::Tuple{Int64,Int64,Int64} = (-1,-1,-1,-1)
     processed_so_far::Int64 = 0
-    unique_id::Int64 = 0
     for s in 1:tg.num_nodes
         for u in 1:tg.num_nodes
             bfs_ds.delta[u] = 1
@@ -32,10 +31,8 @@ function temporal_prefix_foremost_betweenness(tg::temporal_graph, verbose_step::
         end
         bfs_ds.t_min[s] = 0
         bfs_ds.sigma[s] = 1
-        unique_id = 0
         for tn in tal[s]
-            enqueue!(bfs_ds.priority_queue,(s,tn[1],tn[2],unique_id),tn[2])
-            unique_id+=1
+            enqueue!(bfs_ds.priority_queue,(s,tn[1],tn[2]),tn[2])
         end
         while length(bfs_ds.priority_queue) != 0
             temporal_edge = dequeue!(bfs_ds.priority_queue)
@@ -46,8 +43,7 @@ function temporal_prefix_foremost_betweenness(tg::temporal_graph, verbose_step::
                 bfs_ds.t_min[w] = t_w
                 push!(bfs_ds.stack,w)
                 for neig in next_temporal_neighbors(tal,w,t_w)
-                    enqueue!(bfs_ds.priority_queue,(w,neig[1],neig[2],unique_id),neig[2])
-                    unique_id+=1
+                    enqueue!(bfs_ds.priority_queue,(w,neig[1],neig[2]),neig[2])
                 end
             end
             if bfs_ds.t_min[w] == t_w
