@@ -186,3 +186,11 @@ function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tup
     return temporal_graph(length(graph_id_to_ego_id), ego_temporal_edges, [], [])
 end
 
+function average_ego_network_size(tg::temporal_graph)::Float64
+    avg::Float64 = 0.0
+    for e in 1:tg.num_nodes
+        en::temporal_graph = ego_network(tg, e)
+        avg = avg + en.num_nodes / tg.num_nodes
+    end
+    return avg
+end

@@ -137,7 +137,7 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64):
         processed_so_far = processed_so_far + 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
-            println("Processed " * string(processed_so_far) * "/" * string(tg.num_nodes) * " nodes in " * finish_partial * " seconds")
+            println("TSB. Processed " * string(processed_so_far) * "/" * string(tg.num_nodes) * " nodes in " * finish_partial * " seconds")
         end
     end
     finish_total::Float64 = round(time() - start_time; digits=4)

@@ -177,7 +177,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
         processed_so_far = processed_so_far + 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
-            println("Processed " * string(processed_so_far) * "/" * string(sample_size) * " pairs in " * finish_partial * " seconds")
+            println("ONBRA. Processed " * string(processed_so_far) * "/" * string(sample_size) * " pairs in " * finish_partial * " seconds")
         end
     end
     return tilde_b, (mean(exec_time), std(exec_time))

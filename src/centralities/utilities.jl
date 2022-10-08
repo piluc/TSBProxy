@@ -5,6 +5,10 @@ function read_centrality_values(file_name::String)::Array{Float64}
     value::Float64 = 0.0
     for l in eachline(f)
         value = parse(Float64, l)
+        if (value < -0.1)
+            println("ERROR. There are negative values with absolute big values")
+            return Array{Float64}([])
+        end
         if (value < 0)
             value = 0
         end
