@@ -26,4 +26,26 @@ function save_centrality_values(file_name::String, centrality::Array{Float64})::
     close(f)
 end
 
+function read_onbra_centrality_values(file_name::String, ss::Int64, nn::Int64)::Array{Float64}
+    @assert isfile(file_name) "The centrality value file does not exist"
+    f::IOStream = open(file_name, "r")
+    centrality::Array{Float64} = zeros(nn)
+    value::Float64 = 0.0
+    for _ in 1:ss
+        for n in 1:nn
+            value = parse(Float64, readline(f))
+            if (value < -0.1)
+                println("ERROR. There are negative values with absolute big values")
+                return Array{Float64}([])
+            end
+            if (value < 0)
+                value = 0
+            end
+            centrality[n] += value / ss
+        end
+    end
+    close(f)
+    return centrality
+end
+
 

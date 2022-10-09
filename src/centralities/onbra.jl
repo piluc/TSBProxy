@@ -52,7 +52,7 @@ function theoretical_error_bound(tilde_b::Array{Float64}, sample_size::Int64, et
     return max_error
 end
 
-function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Tuple{Float64}}
+function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Tuple{Float64,Float64,Float64}}
     start_time = time()
     sample = test_sample
     if (length(sample) == 0 || length(sample) != sample_size)
@@ -180,7 +180,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
             println("ONBRA. Processed " * string(processed_so_far) * "/" * string(sample_size) * " pairs in " * finish_partial * " seconds")
         end
     end
-    return tilde_b, (mean(exec_time), std(exec_time))
+    return tilde_b, (mean(exec_time), std(exec_time), time() - start_time)
 end
 
 # function onbra(tg::temporal_graph, sample_size::Int64, epsilon::Float64, eta::Float64, verbose_step::Int64)
