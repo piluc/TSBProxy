@@ -8,6 +8,7 @@ compute_statistics = function(data,
                               measurevar,
                               groupvars,
                               conf.interval = 0.95){
+  data = na.omit(data[order(data[[sequence_column]]),])
   data_c = ddply(.data = data, groupvars, .fun = function(xx, col) {
     c(N = length(xx[[col]]), mean = mean(xx[[col]]), sd = sd(xx[[col]]))
   }, measurevar)
@@ -54,10 +55,13 @@ plot2d = function(table,
   meansx = na.omit(meansx[order(meansx[[sequence_column]]),])
   meansy = na.omit(meansy[order(meansy[[sequence_column]]),])
   
-  min_x = min(table[[x_value]])
-  max_x = max(table[[x_value]])
-  min_y = min(table[[y_value]])
-  max_y = max(table[[y_value]])
+  min_x = min(min(table[[x_value]]), min(meansx[[x_value]] - meansx[['sd']])) 
+  max_x = max(max(table[[x_value]]), max(meansx[[x_value]] + meansx[['sd']])) 
+  min_y = min(min(table[[y_value]]), min(meansy[[y_value]] - meansy[['sd']]))
+  max_y = max(max(table[[y_value]]), max(meansy[[y_value]] + meansy[['sd']]))
+  
+  print(min_x) 
+  print(max_x)
   
   theme_set(theme_bw(base_size = font_base_size))
   
@@ -68,10 +72,10 @@ plot2d = function(table,
                          colour=factor(get(sequence_column)))) +
     geom_point(size = point_size, stroke = stroke_size) +
     labs(x = 'spearman correlation', y = 'running time', fill='proxy') +
-    scale_x_continuous(limits=c(min_x, 1.05 * max_x)) +
-    scale_y_continuous(limits=c(min_y, 1.05 * max_y)) +
+    scale_x_continuous(limits=c(min_x, max_x)) +
+    scale_y_continuous(limits=c(min_y, max_y)) +
     scale_shape_manual(values=shapes) +
-    scale_colour_manual(values = colors) +
+    scale_color_brewer(palette='Dark2') +
     theme_bw(base_size = font_base_size) +
     theme(legend.title = element_blank(),
           legend.position= 'bottom',
@@ -96,26 +100,30 @@ plot2d = function(table,
   
   x_p = ggplot(meansx, aes_string(x = x_value, y = 0,
                                   color=sequence_column)) +
-    geom_point(size = point_size, stroke = stroke_size) +
-    scale_x_continuous(limits=c(min_x, 1.05 * max_x)) +
-    scale_colour_manual(values = colors) +
+    geom_point(size = point_size, stroke = stroke_size,
+                position = position_jitter(h = 0.4, w = 0.0, seed = 123)) +
+    scale_x_continuous(limits=c(min_x, max_x)) +
+    scale_color_brewer(palette='Dark2') +
     theme_bw() +
-    geom_errorbar(aes(xmin=pmax(rep(0, dim(meansx)[[1]]), .data[[x_value]] - .data[['ci']]),
-                      xmax=pmin(rep(1.05 * max_x, dim(meansx)[[1]]), .data[[x_value]] + .data[['ci']])),
+    geom_errorbar(aes(xmin=.data[[x_value]] - .data[['sd']],
+                      xmax=.data[[x_value]] + .data[['sd']]),
                   size = errorbar_size,
-                  alpha=0.5) + 
+                  alpha=0.5, 
+                  position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
     theme0(plot.margin = unit(c(0.25, 0., 0.25, 4.5), 'lines'))
 
   y_p = ggplot(meansy, aes_string(x=y_value, y=0,
                                   color=sequence_column)) +
-    geom_point(size = point_size, stroke = stroke_size) +
-    scale_x_continuous(limits=c(min_y, 1.05 * max_y)) +
-    scale_colour_manual(values = colors) +
+    geom_point(size = point_size, stroke = stroke_size,
+                position = position_jitter(h = 0.4, w = 0.0, seed = 123)) +
+    scale_x_continuous(limits=c(min_y, max_y)) +
+    scale_color_brewer(palette='Dark2') +
     theme_bw() +
-    geom_errorbar(aes(xmin=pmax(rep(0, dim(meansy)[[1]]), meansy[[y_value]] - meansy[['ci']]),
-                      xmax=meansy[[y_value]] + meansy[['ci']]),
+    geom_errorbar(aes(xmin=meansy[[y_value]] - meansy[['sd']],
+                      xmax=meansy[[y_value]] + meansy[['sd']]),
                   size = errorbar_size,
-                  alpha=0.5) + 
+                  alpha=0.5, 
+                  position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
     coord_flip()  +
     theme0(plot.margin = unit(c(0, 0.25, 2.5, 0.25), 'lines'))
   
@@ -135,7 +143,7 @@ plot2d = function(table,
 reformat = function(table){
   cat("\nInput table:\n")
   print(table)
-  column_names = c('network', 'algorithm', 'running_time', 'time_ratio', 'correlation', 'h_10', 'h_25', 'h_50', 'h_10.')
+  column_names = c('network', 'algorithm', 'running_time', 'time_ratio', 'correlation')#, 'h_10', 'h_25', 'h_50', 'h_10.')
   new_table = data.frame(matrix(ncol = 9, nrow = 0))
   colnames(new_table) = column_names
   
@@ -143,16 +151,27 @@ reformat = function(table){
     row = table[i, ]
     exact_time = row[paste('time_', 'exact', sep='')]
     
-    exact_row = c(row['Network'], 'exact', exact_time, 1, 1, 10, 25, 50, NA)
+    exact_row = c(row['Network'], 'exact', exact_time, 1, 1)#, 10, 25, 50, NA)
     names(exact_row) = column_names
     new_table = rbind(new_table, exact_row)
     
     for(proxy in proxies){
       new_row = c(row['Network'], proxy, row[paste('time_', proxy, sep='')], 
       row[paste('time_', proxy, sep='')] / exact_time, 
-      row[paste('cor_', proxy, sep='')], row[paste('h_10_', proxy, sep='')], 
-      row[paste('h_25_', proxy, sep='')], row[paste('h_50_', proxy, sep='')], 
-      row[paste('h_10._', proxy, sep='')])
+      row[paste('spearman_', proxy, sep='')])
+      # , row[paste('h_10_', proxy, sep='')], 
+      # row[paste('h_25_', proxy, sep='')], row[paste('h_50_', proxy, sep='')], 
+      # row[paste('h_10._', proxy, sep='')])
+      names(new_row) = column_names
+      new_table = rbind(new_table, new_row)
+    }
+    for(proxy in onbras){
+      new_row = c(row['Network'], proxy, row[paste('avg_time_', proxy, sep='')], 
+      row[paste('avg_time_', proxy, sep='')] / exact_time, 
+      row[paste('avg_spearman_', proxy, sep='')])
+      # , row[paste('h_10_', proxy, sep='')], 
+      # row[paste('h_25_', proxy, sep='')], row[paste('h_50_', proxy, sep='')], 
+      # row[paste('h_10._', proxy, sep='')])
       names(new_row) = column_names
       new_table = rbind(new_table, new_row)
     }
@@ -162,24 +181,25 @@ reformat = function(table){
 }
 
 
-experiments = list(c('./', 'sample_results.txt'))
-proxies = c('ego', 'prefix', 'ptd')
+experiments = list(c('./', 'results.csv'))
+proxies = c('egotsb', 'egoprefix', 'prefix', 'ptd')
+onbras = c('onbra_half', 'onbra_equal', 'onbra_twice')
 
 for(experiment in experiments){
   folder_name = experiment[1]
   file_name = experiment[2]
 
   # read
-  table = read.table(paste(folder_name, file_name, sep=''), header = TRUE)
+  table = read.table(paste(folder_name, file_name, sep=''), header = TRUE, sep=':')
   table = reformat(table)
 
   # plot
   x_value = 'correlation'
   y_value = 'running_time'
   sequence_column = c('algorithm')
-  sequence_column_levels = proxies
+  sequence_column_levels = c(proxies, onbras)
 
-  colors = c( '#b8860b', '#a30000', '#000057')
+  colors = c('#b8860b', '#a30000', '#000057', '#C77CFF')
   shapes = c(1, 2, 3, 4, 5, 6, 7, 8)
 
   dir.create('data')
