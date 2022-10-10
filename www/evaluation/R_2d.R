@@ -60,9 +60,6 @@ plot2d = function(table,
   min_y = min(min(table[[y_value]]), min(meansy[[y_value]] - meansy[['sd']]))
   max_y = max(max(table[[y_value]]), max(meansy[[y_value]] + meansy[['sd']]))
   
-  print(min_x) 
-  print(max_x)
-  
   theme_set(theme_bw(base_size = font_base_size))
   
   scatter_p = ggplot(table,
