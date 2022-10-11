@@ -1,0 +1,7 @@
+Network;time_exact;avg_time_onbra_half;std_time_onbra_half;avg_spearman_onbra_half;std_spearman_onbra_half;avg_ktau_onbra_half;std_ktau_onbra_half;avg_wktau_onbra_half;std_wktau_onbra_half;avg_time_onbra_equal;std_time_onbra_equal;avg_spearman_onbra_equal;std_spearman_onbra_equal;avg_ktau_onbra_equal;std_ktau_onbra_equal;avg_wktau_onbra_equal;std_wktau_onbra_equal;avg_time_onbra_twice;std_time_onbra_twice;avg_spearman_onbra_twice;std_spearman_onbra_twice;avg_ktau_onbra_twice;std_ktau_onbra_twice;avg_wktau_onbra_twice;std_wktau_onbra_twice
+venice;1021.1218;42.6081;1.5732;0.79;0.03;0.64;0.03;0.87;0.01;82.4054;2.9079;0.88;0.01;0.73;0.01;0.91;0.01;162.183;4.9258;0.93;0.01;0.79;0.01;0.93;0
+college_msg;266.0363;11.0069;1.1106;0.63;0.01;0.53;0.01;0.84;0.01;20.9843;0.812;0.71;0.02;0.61;0.02;0.87;0.01;40.2273;1.429;0.8;0.01;0.68;0.01;0.9;0
+email_eu;12501.9513;118.8271;19.7608;0.67;0.02;0.54;0.02;0.82;0.01;195.7122;29.01;0.75;0.01;0.61;0.01;0.85;0;424.9048;60.9339;0.82;0.01;0.68;0.01;0.88;0
+infectious;3389.8857;23.0513;0.2841;NaN;NaN;NaN;NaN;NaN;NaN;44.8718;0.4526;NaN;NaN;NaN;NaN;NaN;NaN;87.0795;1.2486;0.04;0.03;0.04;0.02;0.25;0.14
+SMS;15198.9833;262.1884;12.7528;0.07;0.01;0.07;0.01;0.58;0.06;489.8165;17.8736;0.1;0.01;0.09;0.01;0.65;0.02;908.8946;29.1269;0.14;0.01;0.13;0.01;0.72;0.02
+wiki_elections;606.0405;29.2508;0.0015;0.37;0.02;0.34;0.02;0.8;0.01;54.7335;0.0006;0.45;0.02;0.41;0.01;0.84;0;105.522;0.0011;0.53;0.01;0.49;0.01;0.87;0

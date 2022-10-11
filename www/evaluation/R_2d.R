@@ -15,11 +15,9 @@ compute_statistics = function(data,
   data_c = rename(data_c, c(mean = measurevar))
   data_c$se = data_c$sd/sqrt(data_c$N)
   conf_interval_multiplier = qt(conf.interval/2 + 0.5, data_c$N - 1)
-  data_c$ci = data_c$se * conf_interval_multiplier # round(x, digits = 3)
-  data_file_name = paste('./data/data-', sub('[.]', '_', file_path_sans_ext(file_name)),
-                         '-', measurevar, '.csv', sep = '')
+  data_c$ci = data_c$se * conf_interval_multiplier 
   
-  write.csv(data_c, data_file_name, row.names = FALSE)
+  # write.csv(data_c, paste('./data/data-', measurevar, '.csv', sep = ''), row.names = FALSE)
   print(data_c)
   return(data_c)
 }
@@ -49,6 +47,7 @@ plot2d = function(table,
 ) {
   
   table[[sequence_column]] =  factor(table[[sequence_column]], levels = sequence_column_levels)
+  table[['network']] = factor(table[['network']], levels = networks)
   meansx[[sequence_column]] = factor(meansx[[sequence_column]], levels = sequence_column_levels)
   meansy[[sequence_column]] = factor(meansy[[sequence_column]], levels = sequence_column_levels)
   table = na.omit(table[order(table[[sequence_column]]),])
@@ -68,7 +67,7 @@ plot2d = function(table,
                          shape=factor(network),
                          colour=factor(get(sequence_column)))) +
     geom_point(size = point_size, stroke = stroke_size) +
-    labs(x = 'spearman correlation', y = 'running time', fill='proxy') +
+    labs(x = 'weighted kendall tau correlation', y = 'time ratio', fill='proxy') +
     scale_x_continuous(limits=c(min_x, max_x)) +
     scale_y_continuous(limits=c(min_y, max_y)) +
     scale_shape_manual(values=shapes) +
@@ -97,30 +96,34 @@ plot2d = function(table,
   
   x_p = ggplot(meansx, aes_string(x = x_value, y = 0,
                                   color=sequence_column)) +
-    geom_point(size = point_size, stroke = stroke_size,
-                position = position_jitter(h = 0.4, w = 0.0, seed = 123)) +
+    geom_point(size = point_size, stroke = stroke_size
+      # ,
+      #           position = position_jitter(h = 0.4, w = 0.0, seed = 123)
+    ) +
     scale_x_continuous(limits=c(min_x, max_x)) +
     scale_color_brewer(palette='Dark2') +
     theme_bw() +
-    geom_errorbar(aes(xmin=.data[[x_value]] - .data[['sd']],
-                      xmax=.data[[x_value]] + .data[['sd']]),
-                  size = errorbar_size,
-                  alpha=0.5, 
-                  position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
+    # geom_errorbar(aes(xmin=.data[[x_value]] - .data[['sd']],
+    #                   xmax=.data[[x_value]] + .data[['sd']]),
+    #               size = errorbar_size,
+    #               alpha=0.5, 
+    #               position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
     theme0(plot.margin = unit(c(0.25, 0., 0.25, 4.5), 'lines'))
 
   y_p = ggplot(meansy, aes_string(x=y_value, y=0,
                                   color=sequence_column)) +
-    geom_point(size = point_size, stroke = stroke_size,
-                position = position_jitter(h = 0.4, w = 0.0, seed = 123)) +
+    geom_point(size = point_size, stroke = stroke_size
+      # ,
+      #           position = position_jitter(h = 0.4, w = 0.0, seed = 123)
+              ) +
     scale_x_continuous(limits=c(min_y, max_y)) +
     scale_color_brewer(palette='Dark2') +
     theme_bw() +
-    geom_errorbar(aes(xmin=meansy[[y_value]] - meansy[['sd']],
-                      xmax=meansy[[y_value]] + meansy[['sd']]),
-                  size = errorbar_size,
-                  alpha=0.5, 
-                  position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
+    # geom_errorbar(aes(xmin=meansy[[y_value]] - meansy[['sd']],
+    #                   xmax=meansy[[y_value]] + meansy[['sd']]),
+    #               size = errorbar_size,
+    #               alpha=0.5, 
+    #               position = position_jitter(h = 0.4, w = 0.0, seed = 123)) + 
     coord_flip()  +
     theme0(plot.margin = unit(c(0, 0.25, 2.5, 0.25), 'lines'))
   
@@ -131,16 +134,15 @@ plot2d = function(table,
     shared_legend,
     heights = c(0.3, 3, 0.87))
 
-  plot_f_name = paste('./plots/plot-', sub('[.]', '_', file_path_sans_ext(file_name)),
-                      '-', x_value, '-', y_value, '.pdf', sep = '')
-  ggsave(plot_f_name, plot=plot, width = plotwidth, height = plotheight, limitsize = FALSE)
+  ggsave(paste('./plot-', x_value, '-', y_value, '.pdf', sep = ''), 
+    plot=plot, width = plotwidth, height = plotheight, limitsize = FALSE)
   system("rm Rplots.pdf")
 }
 
-reformat = function(table){
-  cat("\nInput table:\n")
+reformat_proxies = function(table){
+  cat("\nProxies input table:\n")
   print(table)
-  column_names = c('network', 'algorithm', 'running_time', 'time_ratio', 'correlation')#, 'h_10', 'h_25', 'h_50', 'h_10.')
+  column_names = c('network', 'algorithm', 'running_time', 'time_ratio', 'wktau')
   new_table = data.frame(matrix(ncol = 9, nrow = 0))
   colnames(new_table) = column_names
   
@@ -148,63 +150,76 @@ reformat = function(table){
     row = table[i, ]
     exact_time = row[paste('time_', 'exact', sep='')]
     
-    exact_row = c(row['Network'], 'exact', exact_time, 1, 1)#, 10, 25, 50, NA)
+    exact_row = c(row['Network'], 'exact', exact_time, 1, 1)
     names(exact_row) = column_names
     new_table = rbind(new_table, exact_row)
     
     for(proxy in proxies){
       new_row = c(row['Network'], proxy, row[paste('time_', proxy, sep='')], 
       row[paste('time_', proxy, sep='')] / exact_time, 
-      row[paste('spearman_', proxy, sep='')])
-      # , row[paste('h_10_', proxy, sep='')], 
-      # row[paste('h_25_', proxy, sep='')], row[paste('h_50_', proxy, sep='')], 
-      # row[paste('h_10._', proxy, sep='')])
-      names(new_row) = column_names
-      new_table = rbind(new_table, new_row)
-    }
-    for(proxy in onbras){
-      new_row = c(row['Network'], proxy, row[paste('avg_time_', proxy, sep='')], 
-      row[paste('avg_time_', proxy, sep='')] / exact_time, 
-      row[paste('avg_spearman_', proxy, sep='')])
-      # , row[paste('h_10_', proxy, sep='')], 
-      # row[paste('h_25_', proxy, sep='')], row[paste('h_50_', proxy, sep='')], 
-      # row[paste('h_10._', proxy, sep='')])
+      row[paste('wktau_', proxy, sep='')])
       names(new_row) = column_names
       new_table = rbind(new_table, new_row)
     }
   }
-  cat("\nReformatted table:\n")
+  cat("\nReformatted proxies table:\n")
   print(new_table)
 }
 
 
-experiments = list(c('./', 'results.csv'))
-proxies = c('egotsb', 'egoprefix', 'prefix', 'ptd')
-onbras = c('onbra_half', 'onbra_equal', 'onbra_twice')
-
-for(experiment in experiments){
-  folder_name = experiment[1]
-  file_name = experiment[2]
-
-  # read
-  table = read.table(paste(folder_name, file_name, sep=''), header = TRUE, sep=':')
-  table = reformat(table)
-
-  # plot
-  x_value = 'correlation'
-  y_value = 'running_time'
-  sequence_column = c('algorithm')
-  sequence_column_levels = c(proxies, onbras)
-
-  colors = c('#b8860b', '#a30000', '#000057', '#C77CFF')
-  shapes = c(1, 2, 3, 4, 5, 6, 7, 8)
-
-  dir.create('data')
-  dir.create('plots')
-
-  cat(paste("\nStatistics for ", x_value, ":\n", sep=""))
-  meansx = compute_statistics(table, x_value, sequence_column)
-  cat(paste("\nStatistics for ", y_value, ":\n", sep=""))
-  meansy = compute_statistics(table, y_value, sequence_column)
-  plot2d(table, meansx, meansy, x_value, y_value, sequence_column, sequence_column_levels, colors, shapes)
+reformat_onbras = function(table){
+  cat("\nOnbra input table:\n")
+  print(table)
+  column_names = c('network', 'algorithm', 'running_time', 'time_ratio', 'wktau')
+  new_table = data.frame(matrix(ncol = 9, nrow = 0))
+  colnames(new_table) = column_names
+  
+  for(i in 1:nrow(table)) {
+    row = table[i, ]
+    exact_time = row[paste('time_', 'exact', sep='')]
+    
+    exact_row = c(row['Network'], 'exact', exact_time, 1, 1)
+    # names(exact_row) = column_names
+    # new_table = rbind(new_table, exact_row)
+    
+    for(onbra in onbras){
+      new_row = c(row['Network'], onbra, row[paste('avg_time_', onbra, sep='')], 
+      row[paste('avg_time_', onbra, sep='')] / exact_time, 
+      row[paste('avg_wktau_', onbra, sep='')])
+      names(new_row) = column_names
+      new_table = rbind(new_table, new_row)
+    }
+  }
+  cat("\nReformatted onbras table:\n")
+  print(new_table)
 }
+
+
+proxies = c('prefix', 'ptd')
+onbras = c('onbra_equal')
+networks = c('venice', 'college_msg', 'email_eu', 'infectious', 'SMS', 'topology', 'wiki_elections', 'facebook_wall', 'digg_reply')
+
+# read
+proxies_table = read.table('./proxies.csv', header = TRUE, sep=';')
+proxies_table = reformat_proxies(proxies_table)
+onbras_table = read.table('./onbras.csv', header = TRUE, sep=';')
+onbras_table = reformat_onbras(onbras_table)
+
+table = rbind(proxies_table, onbras_table)
+cat("\nComplete reformatted table:\n")
+print(table)
+
+# plot
+x_value = 'wktau'
+y_value = 'time_ratio'
+sequence_column = c('algorithm')
+sequence_column_levels = c(proxies, onbras)
+
+colors = c('#b8860b', '#a30000', '#000057', '#C77CFF')
+shapes = c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+cat(paste("\nStatistics for ", x_value, ":\n", sep=""))
+meansx = compute_statistics(table, x_value, sequence_column)
+cat(paste("\nStatistics for ", y_value, ":\n", sep=""))
+meansy = compute_statistics(table, y_value, sequence_column)
+plot2d(table, meansx, meansy, x_value, y_value, sequence_column, sequence_column_levels, colors, shapes)
