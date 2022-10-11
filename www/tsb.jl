@@ -6,6 +6,7 @@ include("../src/centralities/prefix_foremost_betweenness.jl")
 include("../src/centralities/ego_betweenness.jl")
 include("../src/centralities/utilities.jl")
 include("../src/statistics/rankings.jl")
+include("python_correlation.jl")
 
 """
  Save the values of a (not ONBRA) centrality measure on one file (one line per line) and the corresponding execution time on another file (if there are no values write -1.0)
@@ -84,7 +85,7 @@ end
 """
 Compute and return the average Spearman correlation (with standard deviation) of ONBRA (with a specific type of sample size) and the TSB values (another measure could be used as well) 
 """
-function compute_onbra_correlation(nn::String, te::String, nt::Int64, tsb::Array{Float64})::Tuple{Float64,Float64}
+function compute_onbra_correlations(nn::String, te::String, nt::Int64, tsb::Array{Float64})
     if (!isfile("times/" * nn * "/onbra/time_" * te * ".txt"))
         return 0.0, 0.0
     end
@@ -95,15 +96,20 @@ function compute_onbra_correlation(nn::String, te::String, nt::Int64, tsb::Array
         return 0.0, 0.0
     end
     ss::Int64 = parse(Int64, sl[4])
-    onbra_correlation = zeros(nt)
+    onbra_spearman = zeros(nt)
+    onbra_ktau = zeros(nt)
+    onbra_wktau = zeros(nt)
     for e in 1:nt
         if (!isfile("scores/" * nn * "/onbra/onbra_" * te * "_" * string(e) * ".txt"))
-            return 0.0, 0.0
+            return (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)
         end
         onbra = read_onbra_centrality_values("scores/" * nn * "/onbra/onbra_" * te * "_" * string(e) * ".txt", ss, length(tsb))
-        onbra_correlation[e] = corspearman(tsb, onbra)
+        correlations = compute_correlations(tsb, onbra)
+        onbra_spearman[e] = correlations[1][1]
+        onbra_ktau[e] = correlations[2][1]
+        onbra_wktau[e] = correlations[3][1]
     end
-    return mean(onbra_correlation), std(onbra_correlation)
+    return (mean(onbra_spearman), mean(onbra_ktau), mean(onbra_wktau)), (std(onbra_spearman), std(onbra_ktau), std(onbra_wktau))
 end
 
 """
@@ -165,8 +171,7 @@ end
 """
 Compute and save the values of all centralities apart from ONBRA 
 """
-function execute_all_but_onbra()
-    network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
+function execute_all_but_onbra(network_name::Array{String})
     centrality_name::Array{String} = ["tsb", "egotsb", "egoprefix", "prefix", "ptd"]
     for fn in network_name
         println("Processing ", fn)
@@ -180,9 +185,7 @@ end
 """
 Compute and save the values of all versions of ONBRA (based on the execution time of PREFIX) 
 """
-function execute_all_onbras()
-    # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
-    network_name::Array{String} = ["02_college_msg", "06_infectious", "07_SMS"]
+function execute_all_onbras(network_name::Array{String})
     type::Array{String} = ["equal", "twice", "half"]
     factor::Array{Float64} = [1, 2, 0.5]
     time_estimate_trials::Int64 = 100
@@ -221,7 +224,7 @@ end
 """
 Analyse results on specified networks for all centrality measures apart from ONBRA
 """
-function analyse_all_but_onbra(network_name::Array{String})
+function analyse_all_but_onbra_with_min_h_k(network_name::Array{String})
     centrality_name::Array{String} = ["egotsb", "egoprefix", "prefix", "ptd"]
     for fn in network_name
         mkpath("evaluation/")
@@ -267,41 +270,74 @@ function analyse_all_but_onbra(network_name::Array{String})
 end
 
 """
+Analyse results on specified networks for all centrality measures apart from ONBRA
+"""
+function analyse_all_but_onbra(network_name::Array{String})
+    centrality_name::Array{String} = ["egotsb", "egoprefix", "prefix", "ptd"]
+    for fn in network_name
+        mkpath("evaluation/tmp/")
+        println("Analysing ", fn)
+        t::Float64 = read_time(fn, "tsb", -1.0)
+        if (t >= 0.0)
+            f::IOStream = open("evaluation/tmp/" * fn * "_not_onbra.txt", "w")
+            write(f, "Network:time_exact:time_egotsb:spearman_egotsb:ktau_egotsb:wktau_egotsb:time_egoprefix:spearman_egoprefix:ktau_egoprefix:wktau_egoprefix:time_prefix:spearman_prefix:ktau_prefix:wktau_prefix:time_ptd:spearman_ptd:ktau_ptd:wktau_ptd\n")
+            write(f, fn[4:end] * ":" * string(round(t; digits=4)))
+            tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
+            for cn in centrality_name
+                t = read_time(fn, cn, -1.0)
+                if (t >= 0.0)
+                    write(f, ":" * string(round(t; digits=4)))
+                else
+                    write(f, ":0.0000")
+                end
+                if (isfile("scores/" * fn * "/" * cn * ".txt"))
+                    c::Array{Float64} = read_centrality_values("scores/" * fn * "/" * cn * ".txt")
+                    correlations = compute_correlations(tsb, c)
+                    for cor in 1:3
+                        write(f, ":" * string(round(correlations[cor][1]; digits=2)))
+                    end
+                else
+                    write(f, ":0.00:0.00:0.00")
+                end
+            end
+            close(f)
+        else
+            println("ERROR. No TSB execution time.")
+        end
+    end
+end
+
+"""
 Analyse results on specified networks for ONBRA
 """
 function analyse_all_onbras(network_name::Array{String})
     type::Array{String} = ["half", "equal", "twice"]
     num_trials::Int64 = 10
     for fn in network_name
-        mkpath("evaluation/")
+        mkpath("evaluation/tmp/")
         println("Analysing ", fn)
         t::Float64 = read_time(fn, "tsb", -1.0)
         if (t >= 0.0)
-            f::IOStream = open("evaluation/" * fn * "_onbra.txt", "w")
-            write(f, "Network:time_exact:avg_time_onbra_half:std_time_onbra_half:avg_time_onbra_equal:std_time_onbra_equal:avg_time_twice:std_time_twice:avg_spearman_onbra_half:std_spearman_onbra_half:avg_spearman_onbra_equal:std_spearman_onbra_equal:avg_spearman_onbra_twice:std_spearman_onbra_twice:avg_h_10_onbra_half:std_h_10_onbra_half:avg_h_10_onbra_equal:std_h_10_onbra_equal:avg_h_10_onbra_twice:std_h_10_onbra_twice:avg_h_50_onbra_half:std_h_50_onbra_half:avg_h_50_onbra_equal:std_h_50_onbra_equal:avg_h_50_onbra_twice:std_h_50_onbra_twice:avg_h_100_onbra_half:std_h_100_onbra_half:avg_h_100_onbra_equal:std_h_100_onbra_equal:avg_h_100_onbra_twice:std_h_100_onbra_twice:avg_h_tenpercent_onbra_half:std_h_tenpercent_onbra_half:avg_h_tenpercent_onbra_equal:std_h_tenpercent_onbra_equal:avg_h_tenpercent_onbra_twice:std_h_tenpercent_onbra_twice\n")
-            write(f, fn[4:end] * ":" * string(round(t; digits=4)))
+            tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
+            f::IOStream = open("evaluation/tmp/" * fn * "_onbra.txt", "w")
+            write(f, "Network:time_exact")
             for te in 1:lastindex(type)
+                write(f, ":avg_time_onbra_" * type[te] * ":std_time_onbra_" * type[te] * ":avg_spearman_onbra_" * type[te] * ":std_spearman_onbra_" * type[te] * ":avg_ktau_onbra_" * type[te] * ":std_ktau_onbra_" * type[te] * ":avg_wktau_onbra_" * type[te] * ":std_wktau_onbra_" * type[te])
+            end
+            write(f, "\n" * fn[4:end] * ":" * string(round(t; digits=4)))
+            for te in 1:lastindex(type)
+                println("ONBRA " * type[te])
                 avg_t::Float64, std_t::Float64 = read_onbra_time(fn, type[te], num_trials, -1.0)
                 if (avg_t >= 0.0)
                     write(f, ":" * string(round(avg_t; digits=4)) * ":" * string(round(std_t; digits=4)))
                 else
-                    write(f, ":0.0:0.0")
+                    write(f, ":0.0000:0.0000")
                 end
-            end
-            tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
-            for te in 1:lastindex(type)
-                avg_spearman::Float64, std_spearman::Float64 = compute_onbra_correlation(fn, type[te], num_trials, tsb)
-                write(f, ":" * string(round(avg_spearman; digits=2)) * ":" * string(round(std_spearman; digits=2)))
-            end
-            for te in 1:lastindex(type)
-                avg_min_h_k::Float64, std_min_h_k::Float64 = compute_onbra_min_h_k(fn, type[te], num_trials, tsb, 10)
-                write(f, ":" * string(round(avg_min_h_k; digits=2)) * ":" * string(round(std_min_h_k; digits=2)))
-                avg_min_h_k, std_min_h_k = compute_onbra_min_h_k(fn, type[te], num_trials, tsb, 50)
-                write(f, ":" * string(round(avg_min_h_k; digits=2)) * ":" * string(round(std_min_h_k; digits=2)))
-                avg_min_h_k, std_min_h_k = compute_onbra_min_h_k(fn, type[te], num_trials, tsb, 100)
-                write(f, ":" * string(round(avg_min_h_k; digits=2)) * ":" * string(round(std_min_h_k; digits=2)))
-                avg_min_h_k, std_min_h_k = compute_onbra_min_h_k(fn, type[te], num_trials, tsb, Int64(round(0.01 * length(tsb))))
-                write(f, ":" * string(round(avg_min_h_k; digits=2)) * ":" * string(round(std_min_h_k; digits=2)))
+                println("    Times read")
+                avg_cors, std_cors = compute_onbra_correlations(fn, type[te], num_trials, tsb)
+                for cor in 1:3
+                    write(f, ":" * string(round(avg_cors[cor]; digits=2)) * ":" * string(round(std_cors[cor]; digits=2)))
+                end
             end
             close(f)
         else
@@ -360,8 +396,11 @@ function merge_analysis(network_name::Array{String})
     end
     close(f)
 end
+
 # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
-# execute_all_but_onbra()
-# execute_all_onbras()
-# analyse_all_but_onbra()
-# analyse_all_onbras()
+
+# execute_all_but_onbra(network_name)
+# execute_all_onbras(network_name)
+# analyse_all_but_onbra(network_name)
+# analyse_all_onbras(network_name)
+# merge_analysis(network_name)
