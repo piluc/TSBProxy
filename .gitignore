@@ -22,6 +22,7 @@ docs/site/
 # committed for packages, but should be committed for applications that require a static
 # environment.
 Manifest.toml
+Project.toml
 
 # MAC OS file
 .DS_Store
@@ -37,3 +38,4 @@ scores/
 results/
 times/
 times_maserati/
+www/evaluation/tmp/
