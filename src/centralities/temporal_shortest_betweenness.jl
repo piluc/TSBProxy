@@ -1,6 +1,6 @@
 using DataStructures
 
-struct BFS_data_structure
+struct BFS_DS
     sigma::Array{UInt128}
     dist::Array{Int64}
     sigma_t::Array{UInt128}
@@ -9,8 +9,22 @@ struct BFS_data_structure
     predecessors::Array{Set{Tuple{Int64,Int64}}}
     queue::Queue{Tuple{Int64,Int64}}
     stack::Stack{Tuple{Int64,Int64}}
-    function BFS_data_structure(nn::Int64, ntn::Int64)
+    function BFS_DS(nn::Int64, ntn::Int64)
         return new(Array{UInt128}(undef, nn), Array{Int64}(undef, nn), Array{UInt128}(undef, ntn), Array{Int64}(undef, ntn), Array{Float64}(undef, ntn), Array{Set{Tuple{Int64,Int64}}}(undef, ntn), Queue{Tuple{Int64,Int64}}(), Stack{Tuple{Int64,Int64}}())
+    end
+end
+
+struct BI_BFS_DS
+    sigma::Array{BigInt}
+    dist::Array{Int64}
+    sigma_t::Array{BigInt}
+    dist_t::Array{Int64}
+    delta_sh::Array{Float64}
+    predecessors::Array{Set{Tuple{Int64,Int64}}}
+    queue::Queue{Tuple{Int64,Int64}}
+    stack::Stack{Tuple{Int64,Int64}}
+    function BI_BFS_DS(nn::Int64, ntn::Int64)
+        return new(Array{BigInt}(undef, nn), Array{Int64}(undef, nn), Array{BigInt}(undef, ntn), Array{Int64}(undef, ntn), Array{Float64}(undef, ntn), Array{Set{Tuple{Int64,Int64}}}(undef, ntn), Queue{Tuple{Int64,Int64}}(), Stack{Tuple{Int64,Int64}}())
     end
 end
 
@@ -48,11 +62,15 @@ function temporal_node_index(tg::temporal_graph)::Dict{Tuple{Int64,Int64},Int64}
     return d
 end
 
-function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64)::Tuple{Array{Float64},Float64}
+function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64, bigint::Bool)::Tuple{Array{Float64},Float64}
     start_time = time()
     tal::Array{Array{Tuple{Int64,Int64}}} = temporal_adjacency_list(tg)
     tn_index::Dict{Tuple{Int64,Int64},Int64} = temporal_node_index(tg)
-    bfs_ds::BFS_data_structure = BFS_data_structure(tg.num_nodes, length(keys(tn_index)))
+    if (bigint)
+        bfs_ds = BI_BFS_DS(tg.num_nodes, length(keys(tn_index)))
+    else
+        bfs_ds = BFS_DS(tg.num_nodes, length(keys(tn_index)))
+    end
     temporal_betweenness_centrality::Array{Float64} = zeros(tg.num_nodes)
     u::Int64 = -1
     w::Int64 = -1
@@ -101,14 +119,14 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64):
                     push!(bfs_ds.stack, neig)
                 end
                 if bfs_ds.dist_t[tni_w] == bfs_ds.dist_t[tni] + 1
-                    if (bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
+                    if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
                         println("Overflow occurred with source ", s)
                         return [], 0.0
                     end
                     bfs_ds.sigma_t[tni_w] += bfs_ds.sigma_t[tni]
                     push!(bfs_ds.predecessors[tni_w], temporal_node)
                     if bfs_ds.dist_t[tni_w] == bfs_ds.dist[w]
-                        if (bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
+                        if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
                             println("Overflow occurred with source ", s)
                             return [], 0.0
                         end

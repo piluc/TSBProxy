@@ -36,7 +36,7 @@ function save_onbra_results(nn::String, c::Array{Float64}, type::String, ss::Int
         save_centrality_values("scores/" * nn * "/onbra/onbra_" * type * "_" * string(e) * ".txt", c)
         mkpath("times/" * nn * "/onbra/")
         f = open("times/" * nn * "/onbra/time_" * type * ".txt", "a")
-        write(f, string(round(t[1]; digits=4)) * " " * string(round(t[2]; digits=4)) * " " * string(round(t[3]; digits=4)) * " " * string(ss) * "\n")
+        write(f, string(round(t[3]; digits=4)) * " " * string(round(t[1]; digits=4)) * " " * string(round(t[2]; digits=4)) * " " * string(ss) * "\n")
         close(f)
     else
         mkpath("times/" * nn * "/onbra/")
@@ -140,7 +140,7 @@ end
 """
 Compute and save the values of the specified centrality with respect to the specified network file 
 """
-function one_centrality(nn::String, cn::String)
+function one_centrality(nn::String, cn::String, bigint::Bool)
     tg::temporal_graph = load_temporal_graph("graphs/" * nn * ".txt", " ")
     aens::Float64 = average_ego_network_size(tg)
     t::Float64 = -1.0
@@ -163,7 +163,11 @@ function one_centrality(nn::String, cn::String)
     elseif (cn == "ptd")
         centrality, t = pass_through_degree(tg)
     elseif (cn == "tsb")
-        centrality, t = temporal_shortest_betweenness(tg, 100)
+        if (bigint)
+            centrality, t = temporal_shortest_betweenness_bigint(tg, 100)
+        else
+            centrality, t = temporal_shortest_betweenness(tg, 100)
+        end
     end
     save_results(nn, cn, centrality, t)
 end
@@ -171,13 +175,13 @@ end
 """
 Compute and save the values of all centralities apart from ONBRA 
 """
-function execute_all_but_onbra(network_name::Array{String})
+function execute_all_but_onbra(network_name::Array{String}, bigint::Bool)
     centrality_name::Array{String} = ["tsb", "egotsb", "egoprefix", "prefix", "ptd"]
     for fn in network_name
         println("Processing ", fn)
         for cn in centrality_name
             println("Processing ", cn)
-            one_centrality(fn, cn)
+            one_centrality(fn, cn, bigint)
         end
     end
 end
@@ -399,7 +403,7 @@ end
 
 # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
 
-# execute_all_but_onbra(network_name)
+# execute_all_but_onbra(["04_bordeaux"], true)
 # execute_all_onbras(network_name)
 # analyse_all_but_onbra(network_name)
 # analyse_all_onbras(network_name)
