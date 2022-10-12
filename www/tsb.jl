@@ -142,7 +142,10 @@ Compute and save the values of the specified centrality with respect to the spec
 """
 function one_centrality(nn::String, cn::String, bigint::Bool)
     tg::temporal_graph = load_temporal_graph("graphs/" * nn * ".txt", " ")
-    aens::Float64 = average_ego_network_size(tg)
+    aens::Float64 = 0.0
+    if (cn = "egotsb" || cn == "egoprefix")
+        aens = average_ego_network_size(tg)
+    end
     t::Float64 = -1.0
     max_time::Float64 = read_time(nn, "tsb", 1000.0)
     centrality::Array{Float64} = zeros(tg.num_nodes)
@@ -189,7 +192,7 @@ end
 """
 Compute and save the values of all versions of ONBRA (based on the execution time of PREFIX) 
 """
-function execute_all_onbras(network_name::Array{String})
+function execute_all_onbras(network_name::Array{String}, bigint::Bool)
     type::Array{String} = ["equal", "twice", "half"]
     factor::Array{Float64} = [1, 2, 0.5]
     time_estimate_trials::Int64 = 100
@@ -197,13 +200,13 @@ function execute_all_onbras(network_name::Array{String})
     for fn in network_name
         println("Processing ", fn)
         tg::temporal_graph = load_temporal_graph("graphs/" * fn * ".txt", " ")
-        _, t = onbra(tg, time_estimate_trials, 0)
+        _, t = onbra(tg, time_estimate_trials, 0, bigint)
         println("ONBRA average one sample execution time: ", t[1], " (", t[2], ")")
         prefix_time::Float64 = read_time(fn, "prefix", 1.0)
         for te in 1:lastindex(type)
             sample_size::Int64 = Int64(round(factor[te] * prefix_time / t[1]))
             println("ONBRA sample size (" * type[te] * "): ", sample_size)
-            execute_one_onbra(fn, tg, sample_size, type[te], num_trials, 0)
+            execute_one_onbra(fn, tg, sample_size, type[te], num_trials, 0, bigint)
         end
     end
 end
@@ -211,7 +214,7 @@ end
 """
 Compute and save the values of one version of ONBRA (based on the execution time of PREFIX) 
 """
-function execute_one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::String, nt::Int64, verb::Int64)
+function execute_one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::String, nt::Int64, verb::Int64, bigint::Bool)
     onbra_value::Array{Float64} = zeros(tg.num_nodes)
     onbra_time::Tuple{Float64,Float64,Float64} = (0.0, 0.0, 0.0)
     if (isfile("times/" * nn * "/onbra/time_" * type * ".txt"))
@@ -219,7 +222,7 @@ function execute_one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::Stri
     end
     for e in 1:nt
         print("ONBRA experiment " * string(e) * "/" * string(nt) * ". ")
-        onbra_value, onbra_time = onbra(tg, ss, verb)
+        onbra_value, onbra_time = onbra(tg, ss, verb, bigint)
         save_onbra_results(nn, onbra_value, type, ss, e, onbra_time)
         println("ONBRA with " * string(ss) * " seeds computed in " * string(round(onbra_time[3]; digits=4)) * " seconds")
     end

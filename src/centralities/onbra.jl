@@ -1,7 +1,7 @@
 using DataStructures
 using StatsBase
 
-struct BFS_ONBRA_data_structure
+struct BFS_ONBRA_DS
     sigma::Array{UInt128}
     dist::Array{Int64}
     sigma_t::Array{UInt128}
@@ -11,8 +11,23 @@ struct BFS_ONBRA_data_structure
     boolean_matrix::Array{Bool}
     forward_queue::Queue{Tuple{Int64,Int64}}
     backward_queue::Queue{Tuple{Int64,Int64}}
-    function BFS_ONBRA_data_structure(nn::Int64, ntn::Int64)
+    function BFS_ONBRA_DS(nn::Int64, ntn::Int64)
         return new(Array{UInt128}(undef, nn), Array{Int64}(undef, nn), Array{UInt128}(undef, ntn), zeros(Int64, ntn), Array{Int64}(undef, ntn), Array{Set{Tuple{Int64,Int64}}}(undef, ntn), falses(ntn), Queue{Tuple{Int64,Int64}}(), Queue{Tuple{Int64,Int64}}())
+    end
+end
+
+struct BI_BFS_ONBRA_DS
+    sigma::Array{BigInt}
+    dist::Array{Int64}
+    sigma_t::Array{BigInt}
+    sigma_z::Array{BigInt}
+    dist_t::Array{Int64}
+    predecessors::Array{Set{Tuple{Int64,Int64}}}
+    boolean_matrix::Array{Bool}
+    forward_queue::Queue{Tuple{Int64,Int64}}
+    backward_queue::Queue{Tuple{Int64,Int64}}
+    function BI_BFS_ONBRA_DS(nn::Int64, ntn::Int64)
+        return new(Array{BigInt}(undef, nn), Array{Int64}(undef, nn), Array{BigInt}(undef, ntn), zeros(Int64, ntn), Array{Int64}(undef, ntn), Array{Set{Tuple{Int64,Int64}}}(undef, ntn), falses(ntn), Queue{Tuple{Int64,Int64}}(), Queue{Tuple{Int64,Int64}}())
     end
 end
 
@@ -52,7 +67,7 @@ function theoretical_error_bound(tilde_b::Array{Float64}, sample_size::Int64, et
     return max_error
 end
 
-function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Tuple{Float64,Float64,Float64}}
+function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64, bigint::Bool; test_sample=Array{Tuple{Int64,Int64}}[])::Tuple{Array{Float64},Tuple{Float64,Float64,Float64}}
     start_time = time()
     sample = test_sample
     if (length(sample) == 0 || length(sample) != sample_size)
@@ -60,7 +75,11 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
     end
     tal::Array{Array{Tuple{Int64,Int64}}} = temporal_adjacency_list(tg)
     tn_index::Dict{Tuple{Int64,Int64},Int64} = temporal_node_index(tg)
-    bfs_ds::BFS_ONBRA_data_structure = BFS_ONBRA_data_structure(tg.num_nodes, length(keys(tn_index)))
+    if (bigint)
+        bfs_ds = BI_BFS_ONBRA_DS(tg.num_nodes, length(keys(tn_index)))
+    else
+        bfs_ds = BFS_ONBRA_DS(tg.num_nodes, length(keys(tn_index)))
+    end
     tilde_b::Array{Float64} = zeros(sample_size * tg.num_nodes)
     u::Int64 = -1
     w::Int64 = -1
@@ -112,14 +131,14 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
                         enqueue!(bfs_ds.forward_queue, neig)
                     end
                     if bfs_ds.dist_t[tni_w] == bfs_ds.dist_t[tni] + 1
-                        if (bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
+                        if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
                             println("Overflow occurred with sample (", s, ",", z, ")")
                             return [], 0.0
                         end
                         bfs_ds.sigma_t[tni_w] += bfs_ds.sigma_t[tni]
                         push!(bfs_ds.predecessors[tni_w], temporal_node)
                         if bfs_ds.dist_t[tni_w] == bfs_ds.dist[w]
-                            if (bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
+                            if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
                                 println("Overflow occurred with sample (", s, ",", z, ")")
                                 return [], 0.0
                             end
@@ -142,7 +161,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
             if tni > 0 && bfs_ds.sigma_t[tni] > 0
                 for pred in bfs_ds.predecessors[tni]
                     tni_w = tn_index[(pred[1], pred[2])]
-                    if (bfs_ds.sigma_z[tni_w] == typemax(UInt128))
+                    if (!bigint && bfs_ds.sigma_z[tni_w] == typemax(UInt128))
                         println("Overflow occurred with sample (", s, ",", z, ")")
                         return [], 0.0
                     end
@@ -161,7 +180,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64; test
                 tilde_b[(i-1)*tg.num_nodes+temporal_node[1]] += (bfs_ds.sigma_z[tni] * (bfs_ds.sigma_t[tni] / bfs_ds.sigma[z]))
                 for pred in bfs_ds.predecessors[tni]
                     tni_w = tn_index[(pred[1], pred[2])]
-                    if (bfs_ds.sigma_z[tni_w] > typemax(UInt128) - bfs_ds.sigma_z[tni])
+                    if (!bigint && bfs_ds.sigma_z[tni_w] > typemax(UInt128) - bfs_ds.sigma_z[tni])
                         println("Overflow occurred with sample (", s, ",", z, ")")
                         return [], 0.0
                     end
