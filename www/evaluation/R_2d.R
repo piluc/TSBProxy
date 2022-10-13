@@ -457,7 +457,7 @@ dir.create('experiment_3')
 in_table = read.table('prac_vs_theo.txt', header=TRUE)
 table1 = data.frame(matrix(ncol = 0, nrow = 6))
 table2 = data.frame(matrix(ncol = 0, nrow = 6))
-table1 = cbind(table1, time_ratio=in_table[, 'nMlogm'], tvp='theory', network = c(1, 2, 3, 4, 5, 6))
+table1 = cbind(table1, time_ratio=in_table[, 'nlogM.logm'], tvp='theory', network = c(1, 2, 3, 4, 5, 6))
 table2 = cbind(table2, time_ratio=in_table[, 'tPrefix.tPTD'], tvp='practice', network = c(1, 2, 3, 4, 5, 6))
 
 cr_last_plot(table1, 'network', 'time_ratio', 'experiment_3/theory.pdf')
