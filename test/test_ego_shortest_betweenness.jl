@@ -2,7 +2,7 @@ using Test
 
 include("../src/graphs/temporal_graph.jl")
 include("../src/centralities/temporal_shortest_betweenness.jl")
-include("../src/centralities/ego_shortest_betweenness.jl")
+include("../src/centralities/ego_betweenness.jl")
 
 @testset "ego_shortest_betweenness" begin
     @testset "from star file" begin

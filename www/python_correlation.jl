@@ -16,12 +16,18 @@ def spear(x,y):
     return stats.spearmanr(x, y)
 """
 
-function compute_correlations(x, y)
+function compute_correlations(x, y, verbose::Bool)
     sp = py"spear"(x, y)
-    println("    Spearman computed")
+    if (verbose)
+        println("    Spearman computed")
+    end
     kt = py"ktau"(x, y)
-    println("    Kendall tau computed")
+    if (verbose)
+        println("    Kendall tau computed")
+    end
     wkt = py"wktau"(x, y)
-    println("    Weighted Kendall tau computed")
+    if (verbose)
+        println("    Weighted Kendall tau computed")
+    end
     return sp, kt, wkt
 end

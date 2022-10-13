@@ -5,7 +5,7 @@ function temporal_ego_betweenness_centrality(tg::temporal_graph, max_time::Float
     temporal_ego_centrality::Array{Float64} = zeros(tg.num_nodes)
     processed_so_far::Int64 = 0
     for e in 1:tg.num_nodes
-        temporal_ego_centrality[e] = temporal_shortest_betweenness(ego_network(tg, e), 0)[1][1]
+        temporal_ego_centrality[e] = temporal_shortest_betweenness(ego_network(tg, e), 0, false)[1][1]
         if ((time() - start_time) > max_time)
             return Array{Float64}[], 0.0
         end

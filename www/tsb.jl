@@ -104,7 +104,7 @@ function compute_onbra_correlations(nn::String, te::String, nt::Int64, tsb::Arra
             return (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)
         end
         onbra = read_onbra_centrality_values("scores/" * nn * "/onbra/onbra_" * te * "_" * string(e) * ".txt", ss, length(tsb))
-        correlations = compute_correlations(tsb, onbra)
+        correlations = compute_correlations(tsb, onbra, true)
         onbra_spearman[e] = correlations[1][1]
         onbra_ktau[e] = correlations[2][1]
         onbra_wktau[e] = correlations[3][1]
@@ -166,11 +166,7 @@ function one_centrality(nn::String, cn::String, bigint::Bool)
     elseif (cn == "ptd")
         centrality, t = pass_through_degree(tg)
     elseif (cn == "tsb")
-        if (bigint)
-            centrality, t = temporal_shortest_betweenness_bigint(tg, 100)
-        else
-            centrality, t = temporal_shortest_betweenness(tg, 100)
-        end
+        centrality, t = temporal_shortest_betweenness(tg, 100, bigint)
     end
     save_results(nn, cn, centrality, t)
 end
@@ -299,7 +295,7 @@ function analyse_all_but_onbra(network_name::Array{String})
                 end
                 if (isfile("scores/" * fn * "/" * cn * ".txt"))
                     c::Array{Float64} = read_centrality_values("scores/" * fn * "/" * cn * ".txt")
-                    correlations = compute_correlations(tsb, c)
+                    correlations = compute_correlations(tsb, c, true)
                     for cor in 1:3
                         write(f, ":" * string(round(correlations[cor][1]; digits=2)))
                     end
@@ -404,6 +400,78 @@ function merge_analysis(network_name::Array{String})
     close(f)
 end
 
+function onbra_evolution(network_name::Array{String}, nt::Int64, as::Int64)
+    mkpath("evaluation/tmp/")
+    for fn in network_name
+        println("Processing ", fn)
+        if (isfile("evaluation/tmp/" * fn * "_onbra.txt"))
+            mkpath("evaluation/onbra_evolution/" * fn * "/")
+            of::IOStream = open("evaluation/onbra_evolution/" * fn * "/evolution.txt", "w")
+            write(of, "num_samples:time:spearman:tau:wtau\n")
+            tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
+            nn::Int64 = length(tsb)
+            cum_onbra::Array{Float64} = zeros(nn)
+            onbra::Array{Float64} = zeros(nn)
+            ss_time, _ = read_onbra_time(fn, "twice", nt, 0.0)
+            f::IOStream = open("times/" * fn * "/onbra/time_twice.txt", "r")
+            l::String = readline(f)
+            close(f)
+            ss::Int64 = parse(Int64, split(l, " ")[4])
+            sample_t::Float64 = ss_time / ss
+            rem::Int64 = 0
+            ns::Int64 = div((ss - rem), as)
+            total_cum_ss::Int64 = 0
+            cum_ss::Int64 = 0
+            for e in 1:nt
+                cum_ss = 0
+                f = open("scores/" * fn * "/onbra/onbra_twice_" * string(e) * ".txt")
+                if (rem > 0)
+                    for _ in 1:rem
+                        for u in 1:nn
+                            cum_onbra[u] += parse(Float64, readline(f))
+                        end
+                        total_cum_ss += 1
+                        cum_ss += 1
+                    end
+                    for u in 1:nn
+                        onbra[u] = cum_onbra[u] / total_cum_ss
+                    end
+                    correlations = compute_correlations(tsb, onbra, false)
+                    write(of, string(total_cum_ss) * ":" * string(round(total_cum_ss * sample_t; digits=4)) * ":" * string(correlations[1][1]) * ":" * string(correlations[2][1]) * ":" * string(correlations[3][1]) * "\n")
+                end
+                for _ in 1:ns
+                    for _ in 1:as
+                        for u in 1:nn
+                            cum_onbra[u] += parse(Float64, readline(f))
+                        end
+                        total_cum_ss += 1
+                        cum_ss += 1
+                    end
+                    for u in 1:nn
+                        onbra[u] = cum_onbra[u] / total_cum_ss
+                    end
+                    correlations = compute_correlations(tsb, onbra, false)
+                    write(of, string(total_cum_ss) * ":" * string(round(total_cum_ss * sample_t; digits=4)) * ":" * string(correlations[1][1]) * ":" * string(correlations[2][1]) * ":" * string(correlations[3][1]) * "\n")
+                end
+                rem = ss - cum_ss
+                for _ in 1:rem
+                    for u in 1:nn
+                        cum_onbra[u] += parse(Float64, readline(f))
+                    end
+                    total_cum_ss += 1
+                    cum_ss += 1
+                end
+                if (cum_ss != ss)
+                    println("ERROR. The number of samples in a file does not correspond to the number of read samples.")
+                end
+                rem = as - rem
+                ns = div((ss - rem), as)
+                close(f)
+            end
+            close(of)
+        end
+    end
+end
 # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
 
 # execute_all_but_onbra(["04_bordeaux"], true)
