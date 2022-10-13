@@ -313,8 +313,7 @@ end
 """
 Analyse results on specified networks for ONBRA
 """
-function analyse_all_onbras(network_name::Array{String})
-    type::Array{String} = ["half", "equal", "twice"]
+function analyse_all_onbras(network_name::Array{String}, type::Array{String})
     num_trials::Int64 = 10
     for fn in network_name
         mkpath("evaluation/tmp/")
@@ -473,9 +472,10 @@ function onbra_evolution(network_name::Array{String}, nt::Int64, as::Int64)
     end
 end
 # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
+# type::Array{String} = ["half", "equal", "twice"]
 
 # execute_all_but_onbra(["04_bordeaux"], true)
 # execute_all_onbras(network_name)
 # analyse_all_but_onbra(network_name)
-# analyse_all_onbras(network_name)
+# analyse_all_onbras(network_name, type)
 # merge_analysis(network_name)
