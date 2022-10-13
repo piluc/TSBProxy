@@ -1,3 +1,5 @@
+using Graphs
+
 include("../src/graphs/temporal_graph.jl")
 include("../src/centralities/temporal_shortest_betweenness.jl")
 include("../src/centralities/onbra.jl")
@@ -470,6 +472,15 @@ function onbra_evolution(network_name::Array{String}, nt::Int64, as::Int64)
             close(of)
         end
     end
+end
+
+function ne_underlying_graph(network_name::String)::Int64
+    tg::temporal_graph = load_temporal_graph("graphs/" * network_name * ".txt", " ")
+    g::SimpleDiGraph = SimpleDiGraph(tg.num_nodes)
+    for te in tg.temporal_edges
+        add_edge!(g, te[1], te[2])
+    end
+    return ne(g)
 end
 # network_name::Array{String} = ["00_hospital_ward", "01_venice", "02_college_msg", "03_email_eu", "04_bordeaux", "05_adelaide", "06_infectious", "07_SMS", "08_topology", "09_wiki_elections", "10_facebook_wall", "11_digg_reply", "12_mathoverflow"]
 # type::Array{String} = ["half", "equal", "twice"]
