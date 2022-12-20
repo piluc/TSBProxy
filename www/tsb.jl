@@ -145,7 +145,7 @@ Compute and save the values of the specified centrality with respect to the spec
 function one_centrality(nn::String, cn::String, bigint::Bool)
     tg::temporal_graph = load_temporal_graph("graphs/" * nn * ".txt", " ")
     aens::Float64 = 0.0
-    if (cn = "egotsb" || cn == "egoprefix")
+    if (cn == "egotsb" || cn == "egoprefix")
         aens = average_ego_network_size(tg)
     end
     t::Float64 = -1.0
@@ -490,3 +490,8 @@ end
 # analyse_all_but_onbra(network_name)
 # analyse_all_onbras(network_name, type)
 # merge_analysis(network_name)
+
+function table_1(network_name::String)
+    tg::temporal_graph = load_temporal_graph("graphs/" * network_name * ".txt", " ")
+    print_stats(tg)
+end
