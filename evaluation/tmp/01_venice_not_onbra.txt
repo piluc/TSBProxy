@@ -1,0 +1,2 @@
+Network:time_exact:time_bc:spearman_bc:ktau_bc:wktau:bc:time_egotsb:spearman_egotsb:ktau_egotsb:wktau_egotsb:time_egoprefix:spearman_egoprefix:ktau_egoprefix:wktau_egoprefix:time_prefix:spearman_prefix:ktau_prefix:wktau_prefix:time_ptd:spearman_ptd:ktau_ptd:wktau_ptd
+venice:1021.1218:0.7232:0.91:0.78:0.9:29.063:0.49:0.35:0.62:26.6339:0.47:0.36:0.64:86.1592:0.81:0.64:0.8:0.0101:0.41:0.3:0.61

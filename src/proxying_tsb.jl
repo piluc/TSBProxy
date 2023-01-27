@@ -1,14 +1,16 @@
-using Graphs
+using PlotlyJS
 
-include("../src/graphs/temporal_graph.jl")
-include("../src/centralities/temporal_shortest_betweenness.jl")
-include("../src/centralities/onbra.jl")
-include("../src/centralities/pass_through_degree.jl")
-include("../src/centralities/prefix_foremost_betweenness.jl")
-include("../src/centralities/ego_betweenness.jl")
-include("../src/centralities/utilities.jl")
-include("../src/statistics/rankings.jl")
-include("python_correlation.jl")
+include("graphs/temporal_graph.jl")
+include("centralities/betweenness.jl")
+include("centralities/degrees.jl")
+include("centralities/temporal_shortest_betweenness.jl")
+include("centralities/onbra.jl")
+include("centralities/pass_through_degree.jl")
+include("centralities/prefix_foremost_betweenness.jl")
+include("centralities/ego_betweenness.jl")
+include("centralities/utilities.jl")
+include("statistics/rankings.jl")
+include("statistics/python_correlation.jl")
 
 """
  Save the values of a (not ONBRA) centrality measure on one file (one line per line) and the corresponding execution time on another file (if there are no values write -1.0)
@@ -134,7 +136,7 @@ function compute_onbra_min_h_k(nn::String, te::String, nt::Int64, tsb::Array{Flo
             return 0.0, 0.0
         end
         onbra = read_onbra_centrality_values("scores/" * nn * "/onbra/onbra_" * te * "_" * string(e) * ".txt", ss, length(tsb))
-        onbra_min_h_k[e] = min_h_k(tsb, onbra, h)
+        onbra_min_h_k[e] = jaccard(tsb, onbra, h)
     end
     return mean(onbra_min_h_k), std(onbra_min_h_k)
 end
@@ -151,7 +153,9 @@ function one_centrality(nn::String, cn::String, bigint::Bool)
     t::Float64 = -1.0
     max_time::Float64 = read_time(nn, "tsb", 1000.0)
     centrality::Array{Float64} = zeros(tg.num_nodes)
-    if (cn == "egotsb")
+    if (cn == "betweenness")
+        centrality, t = betweenness(tg, true)
+    elseif (cn == "egotsb")
         if (aens > tg.num_nodes / 10)
             centrality, t = Array{Float64}([]), 0.0
         else
@@ -174,45 +178,22 @@ function one_centrality(nn::String, cn::String, bigint::Bool)
 end
 
 """
-Compute and save the values of all centralities apart from ONBRA 
+Compute and save the values of the degree centralities with respect to the specified network file 
 """
-function execute_all_but_onbra(network_name::Array{String}, bigint::Bool)
-    centrality_name::Array{String} = ["tsb", "egotsb", "egoprefix", "prefix", "ptd"]
-    for fn in network_name
-        println("Processing ", fn)
-        for cn in centrality_name
-            println("Processing ", cn)
-            one_centrality(fn, cn, bigint)
-        end
-    end
+function degree_centralities(nn::String)
+    tg::temporal_graph = load_temporal_graph("graphs/" * nn * ".txt", " ")
+    idc, odc, dct = degrees(tg, false)
+    save_results(nn, "indegree", idc, dct / 2)
+    save_results(nn, "outdegree", odc, dct / 2)
+    tidc, todc, tdct = temporal_degrees(tg, false)
+    save_results(nn, "tindegree", tidc, tdct)
+    save_results(nn, "toutdegree", todc, tdct)
 end
 
 """
-Compute and save the values of all versions of ONBRA (based on the execution time of PREFIX) 
+Compute and save the values of one version of ONBRA (based on the execution time of PREFIX) for one specified network
 """
-function execute_all_onbras(network_name::Array{String}, bigint::Bool)
-    type::Array{String} = ["equal", "twice", "half"]
-    factor::Array{Float64} = [1, 2, 0.5]
-    time_estimate_trials::Int64 = 100
-    num_trials::Int64 = 10
-    for fn in network_name
-        println("Processing ", fn)
-        tg::temporal_graph = load_temporal_graph("graphs/" * fn * ".txt", " ")
-        _, t = onbra(tg, time_estimate_trials, 0, bigint)
-        println("ONBRA average one sample execution time: ", t[1], " (", t[2], ")")
-        prefix_time::Float64 = read_time(fn, "prefix", 1.0)
-        for te in 1:lastindex(type)
-            sample_size::Int64 = Int64(round(factor[te] * prefix_time / t[1]))
-            println("ONBRA sample size (" * type[te] * "): ", sample_size)
-            execute_one_onbra(fn, tg, sample_size, type[te], num_trials, 0, bigint)
-        end
-    end
-end
-
-"""
-Compute and save the values of one version of ONBRA (based on the execution time of PREFIX) 
-"""
-function execute_one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::String, nt::Int64, verb::Int64, bigint::Bool)
+function one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::String, nt::Int64, verb::Int64, bigint::Bool)
     onbra_value::Array{Float64} = zeros(tg.num_nodes)
     onbra_time::Tuple{Float64,Float64,Float64} = (0.0, 0.0, 0.0)
     if (isfile("times/" * nn * "/onbra/time_" * type * ".txt"))
@@ -223,6 +204,45 @@ function execute_one_onbra(nn::String, tg::temporal_graph, ss::Int64, type::Stri
         onbra_value, onbra_time = onbra(tg, ss, verb, bigint)
         save_onbra_results(nn, onbra_value, type, ss, e, onbra_time)
         println("ONBRA with " * string(ss) * " seeds computed in " * string(round(onbra_time[3]; digits=4)) * " seconds")
+    end
+end
+
+"""
+Compute and save the values of all versions of ONBRA (based on the execution time of PREFIX) for one specified network
+"""
+function onbras(fn::String, bigint::Bool)
+    type::Array{String} = ["equal", "twice", "half"]
+    factor::Array{Float64} = [1, 2, 0.5]
+    time_estimate_trials::Int64 = 100
+    num_trials::Int64 = 10
+    println("Processing ", fn)
+    tg::temporal_graph = load_temporal_graph("graphs/" * fn * ".txt", " ")
+    _, t = onbra(tg, time_estimate_trials, 0, bigint)
+    println("ONBRA average one sample execution time: ", t[1], " (", t[2], ")")
+    prefix_time::Float64 = read_time(fn, "prefix", 1.0)
+    for te in 1:lastindex(type)
+        sample_size::Int64 = Int64(round(factor[te] * prefix_time / t[1]))
+        println("ONBRA sample size (" * type[te] * "): ", sample_size)
+        one_onbra(fn, tg, sample_size, type[te], num_trials, 0, bigint)
+    end
+end
+
+"""
+Compute and save the values of all specified centralities for all specified networks
+"""
+function execute(network_name::Array{String}, centrality_name::Array{String}, bigint::Bool)
+    for fn in network_name
+        println("Processing ", fn)
+        for cn in centrality_name
+            if (cn == "onbra")
+                execute_onbras(fn, bigint)
+            elseif (cn == "degree")
+                degree_centralities(fn)
+            else
+                println("Processing ", cn)
+                one_centrality(fn, cn, bigint)
+            end
+        end
     end
 end
 
@@ -259,10 +279,10 @@ function analyse_all_but_onbra_with_min_h_k(network_name::Array{String})
             for cn in centrality_name
                 if (isfile("scores/" * fn * "/" * cn * ".txt"))
                     c::Array{Float64} = read_centrality_values("scores/" * fn * "/" * cn * ".txt")
-                    write(f, ":" * string(min_h_k(tsb, c, 10)))
-                    write(f, ":" * string(min_h_k(tsb, c, 50)))
-                    write(f, ":" * string(min_h_k(tsb, c, 100)))
-                    write(f, ":" * string(min_h_k(tsb, c, Int64(round(0.01 * length(c))))))
+                    write(f, ":" * string(jaccard(tsb, c, 10)))
+                    write(f, ":" * string(jaccard(tsb, c, 50)))
+                    write(f, ":" * string(jaccard(tsb, c, 100)))
+                    write(f, ":" * string(jaccard(tsb, c, Int64(round(0.01 * length(c))))))
                 else
                     write(f, ":0:0:0:0")
                 end
@@ -275,17 +295,103 @@ function analyse_all_but_onbra_with_min_h_k(network_name::Array{String})
 end
 
 """
+Compute, for each specified network, for each specified centrality, and for each k between 1 and the specified maximum value, the minimum value h such that the top-k nodes in the TSB ranking are included in the top h nodes in the current centrality ranking 
+"""
+function jaccard(network_name::Array{String}, cn::Array{String}, max_k::Int64)::Tuple{Array{Array{String}},Array{Array{Array{Float64}}}}
+    all_min_h::Array{Array{Array{Float64}}} = []
+    all_centrality_names::Array{Array{String}} = []
+    dn::Array{String} = ["indegree", "outdegree", "tindegree", "toutdegree"]
+    for nn in network_name
+        min_h::Array{Array{Float64}} = []
+        centrality_names::Array{String} = []
+        for c in 1:lastindex(cn)
+            if (cn[c] == "onbra")
+                if (isfile("times/" * nn * "/onbra/time_twice.txt"))
+                    f = open("times/" * nn * "/onbra/time_twice.txt", "r")
+                    ne = countlines(f)
+                    close(f)
+                    f = open("times/" * nn * "/onbra/time_twice.txt", "r")
+                    sl = split(readline(f), " ")
+                    close(f)
+                    ss::Int64 = parse(Int64, sl[4])
+                    push!(min_h, jaccard(nn, "tsb", ne, ss, max_k))
+                    push!(centrality_names, "onbra")
+                end
+            elseif (cn[c] == "degree")
+                for d in 1:lastindex(dn)
+                    if (isfile("scores/" * nn * "/" * dn[d] * ".txt"))
+                        push!(min_h, jaccard(nn, "tsb", dn[d], max_k))
+                        push!(centrality_names, dn[d])
+                    end
+                end
+            else
+                if (isfile("scores/" * nn * "/" * cn[c] * ".txt"))
+                    push!(min_h, jaccard(nn, "tsb", cn[c], max_k))
+                    push!(centrality_names, cn[c])
+                end
+            end
+        end
+        push!(all_min_h, min_h)
+        push!(all_centrality_names, centrality_names)
+    end
+    return all_centrality_names, all_min_h
+end
+
+"""
+Compute, for each specified network, for each specified centrality, and for each k between 1 and the specified maximum value, the Jaccard index of the top-k nodes in the TSB ranking and the top-k nodes in the current centrality ranking 
+"""
+function jaccard(network_name::Array{String}, cn::Array{String}, max_k::Int64)::Tuple{Array{Array{String}},Array{Array{Array{Float64}}}}
+    all_jaccard::Array{Array{Array{Float64}}} = []
+    all_centrality_names::Array{Array{String}} = []
+    dn::Array{String} = ["indegree", "outdegree", "tindegree", "toutdegree"]
+    for nn in network_name
+        jac::Array{Array{Float64}} = []
+        centrality_names::Array{String} = []
+        for c in 1:lastindex(cn)
+            if (cn[c] == "onbra")
+                if (isfile("times/" * nn * "/onbra/time_twice.txt"))
+                    f = open("times/" * nn * "/onbra/time_twice.txt", "r")
+                    ne = countlines(f)
+                    close(f)
+                    f = open("times/" * nn * "/onbra/time_twice.txt", "r")
+                    sl = split(readline(f), " ")
+                    close(f)
+                    ss::Int64 = parse(Int64, sl[4])
+                    push!(jac, jaccard(nn, "tsb", ne, ss, max_k))
+                    push!(centrality_names, "onbra")
+                end
+            elseif (cn[c] == "degree")
+                for d in 1:lastindex(dn)
+                    if (isfile("scores/" * nn * "/" * dn[d] * ".txt"))
+                        push!(jac, jaccard(nn, "tsb", dn[d], max_k))
+                        push!(centrality_names, dn[d])
+                    end
+                end
+            else
+                if (isfile("scores/" * nn * "/" * cn[c] * ".txt"))
+                    push!(jac, jaccard(nn, "tsb", cn[c], max_k))
+                    push!(centrality_names, cn[c])
+                end
+            end
+        end
+        push!(all_jaccard, jac)
+        push!(all_centrality_names, centrality_names)
+    end
+    return all_centrality_names, all_jaccard
+end
+
+"""
 Analyse results on specified networks for all centrality measures apart from ONBRA
 """
 function analyse_all_but_onbra(network_name::Array{String})
-    centrality_name::Array{String} = ["egotsb", "egoprefix", "prefix", "ptd"]
+    centrality_name::Array{String} = ["betweenness", "kadabra", "egotsb", "egoprefix", "prefix", "ptd"]
     for fn in network_name
-        mkpath("evaluation/tmp/")
+        mkpath("evaluation/")
         println("Analysing ", fn)
         t::Float64 = read_time(fn, "tsb", -1.0)
         if (t >= 0.0)
-            f::IOStream = open("evaluation/tmp/" * fn * "_not_onbra.txt", "w")
-            write(f, "Network:time_exact:time_egotsb:spearman_egotsb:ktau_egotsb:wktau_egotsb:time_egoprefix:spearman_egoprefix:ktau_egoprefix:wktau_egoprefix:time_prefix:spearman_prefix:ktau_prefix:wktau_prefix:time_ptd:spearman_ptd:ktau_ptd:wktau_ptd\n")
+            f::IOStream = open("evaluation/" * fn * "_not_onbra.txt", "w")
+            # write(f, "Network:time_exact:time_bc:spearman_bc:ktau_bc:wktau:bc:time_egotsb:spearman_egotsb:ktau_egotsb:wktau_egotsb:time_egoprefix:spearman_egoprefix:ktau_egoprefix:wktau_egoprefix:time_prefix:spearman_prefix:ktau_prefix:wktau_prefix:time_ptd:spearman_ptd:ktau_ptd:wktau_ptd\n")
             write(f, fn[4:end] * ":" * string(round(t; digits=4)))
             tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
             for cn in centrality_name
@@ -318,12 +424,12 @@ Analyse results on specified networks for ONBRA
 function analyse_all_onbras(network_name::Array{String}, type::Array{String})
     num_trials::Int64 = 10
     for fn in network_name
-        mkpath("evaluation/tmp/")
+        mkpath("evaluation/")
         println("Analysing ", fn)
         t::Float64 = read_time(fn, "tsb", -1.0)
         if (t >= 0.0)
             tsb::Array{Float64} = read_centrality_values("scores/" * fn * "/tsb.txt")
-            f::IOStream = open("evaluation/tmp/" * fn * "_onbra.txt", "w")
+            f::IOStream = open("evaluation/" * fn * "_onbra.txt", "w")
             write(f, "Network:time_exact")
             for te in 1:lastindex(type)
                 write(f, ":avg_time_onbra_" * type[te] * ":std_time_onbra_" * type[te] * ":avg_spearman_onbra_" * type[te] * ":std_spearman_onbra_" * type[te] * ":avg_ktau_onbra_" * type[te] * ":std_ktau_onbra_" * type[te] * ":avg_wktau_onbra_" * type[te] * ":std_wktau_onbra_" * type[te])
@@ -402,10 +508,10 @@ function merge_analysis(network_name::Array{String})
 end
 
 function onbra_evolution(network_name::Array{String}, nt::Int64, as::Int64)
-    mkpath("evaluation/tmp/")
+    mkpath("evaluation/")
     for fn in network_name
         println("Processing ", fn)
-        if (isfile("evaluation/tmp/" * fn * "_onbra.txt"))
+        if (isfile("evaluation/" * fn * "_onbra.txt"))
             mkpath("evaluation/onbra_evolution/" * fn * "/")
             of::IOStream = open("evaluation/onbra_evolution/" * fn * "/evolution.txt", "w")
             write(of, "num_samples:time:spearman:tau:wtau\n")
@@ -472,6 +578,42 @@ function onbra_evolution(network_name::Array{String}, nt::Int64, as::Int64)
             close(of)
         end
     end
+end
+
+function plot_min_h_k(nn::String, max_k::Int64)
+    cn, min_h = jaccard([nn], ["betweenness", "degree", "egotsb", "egoprefix", "onbra", "prefix", "ptd"], max_k)
+    layout = Layout(autosize=true, width=600, height=600, yaxis=attr(showline=true, linewidth=2, linecolor="black", mirror=true, scaleratio=0.25), yaxis_title="h", xaxis=attr(showline=true, linewidth=2, linecolor="black", mirror=true, range=[1, max_k], constrain="domain"), xaxis_title="k", legend=attr(x=1, xanchor="right", y=1.02, yanchor="bottom", orientation="h", title="Minimum h corresponding to k"))
+    x_years = range(1, max_k, step=1)
+    traces = GenericTrace[]
+    trace = scatter(x=x_years, y=min_h[1][1], mode="lines+markers", line_shape="spline", connectgaps=true, name=uppercase(cn[1][1]))
+    push!(traces, trace)
+    for c in 2:lastindex(cn[1])
+        trace = scatter(x=x_years, y=min_h[1][c], mode="lines+markers", line_shape="spline", connectgaps=true, name=uppercase(cn[1][c]), visible="legendonly")
+        push!(traces, trace)
+    end
+    plot_buttons_to_remove = ["zoom", "pan", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "resetScale2d"]
+    plot_logo = true
+    p = plot(traces, layout, config=PlotConfig(modeBarButtonsToRemove=plot_buttons_to_remove, displaylogo=plot_logo))
+    mkpath("images/min_h/")
+    savefig(p, "images/min_h/" * nn * ".html")
+end
+
+function plot_jaccard(nn::String, max_k::Int64)
+    cn, jac = jaccard([nn], ["betweenness", "degree", "egotsb", "egoprefix", "onbra", "prefix", "ptd"], max_k)
+    layout = Layout(autosize=true, width=600, height=600, yaxis=attr(showline=true, linewidth=2, linecolor="black", mirror=true, scaleratio=0.25), yaxis_title="Jaccard index", xaxis=attr(showline=true, linewidth=2, linecolor="black", mirror=true, range=[1, max_k], constrain="domain"), xaxis_title="k", legend=attr(x=1, xanchor="right", y=1.02, yanchor="bottom", orientation="h", title="Jaccard index corresponding to k"))
+    x_years = range(1, max_k, step=1)
+    traces = GenericTrace[]
+    trace = scatter(x=x_years, y=jac[1][1], mode="lines+markers", line_shape="spline", connectgaps=true, name=uppercase(cn[1][1]))
+    push!(traces, trace)
+    for c in 2:lastindex(cn[1])
+        trace = scatter(x=x_years, y=jac[1][c], mode="lines+markers", line_shape="spline", connectgaps=true, name=uppercase(cn[1][c]), visible="legendonly")
+        push!(traces, trace)
+    end
+    plot_buttons_to_remove = ["zoom", "pan", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "resetScale2d"]
+    plot_logo = true
+    p = plot(traces, layout, config=PlotConfig(modeBarButtonsToRemove=plot_buttons_to_remove, displaylogo=plot_logo))
+    mkpath("images/jaccard/")
+    savefig(p, "images/jaccard/" * nn * ".html")
 end
 
 function ne_underlying_graph(network_name::String)::Int64

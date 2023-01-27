@@ -1,0 +1,2 @@
+Network:time_exact:avg_time_onbra_half:std_time_onbra_half:avg_spearman_onbra_half:std_spearman_onbra_half:avg_ktau_onbra_half:std_ktau_onbra_half:avg_wktau_onbra_half:std_wktau_onbra_half
+venice:1021.1218:42.6081:1.5732:0.79:0.03:0.64:0.03:0.87:0.01

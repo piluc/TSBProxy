@@ -1,0 +1,2 @@
+Network:time_exact:time_bc:spearman_bc:ktau_bc:wktau:bc:time_egotsb:spearman_egotsb:ktau_egotsb:wktau_egotsb:time_egoprefix:spearman_egoprefix:ktau_egoprefix:wktau_egoprefix:time_prefix:spearman_prefix:ktau_prefix:wktau_prefix:time_ptd:spearman_ptd:ktau_ptd:wktau_ptd
+college_msg:266.0363:0.9897:0.96:0.87:0.95:45.4158:0.97:0.87:0.94:18.5608:0.97:0.87:0.94:26.2934:0.94:0.83:0.92:0.0118:0.96:0.87:0.95

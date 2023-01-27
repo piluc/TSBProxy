@@ -87,6 +87,7 @@ function temporal_incidency_list(tg::temporal_graph)::Array{Array{Tuple{Int64,In
     return tal
 end
 
+# TO BE DELETED
 function ego_network(tg::temporal_graph, e::Int64)::temporal_graph
     temporal_ego_edges::Array{Tuple{Int64,Int64,Int64}} = Array{Tuple{Int64,Int64,Int64}}([])
     current_node_id::Int64 = 2
@@ -134,6 +135,7 @@ function ego_network(tg::temporal_graph, e::Int64)::temporal_graph
     return temporal_graph(length(graph_id_to_ego_id), temporal_ego_edges, graph_id, graph_time)
 end
 
+# TO BE USED
 function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tuple{Int64,Int64}}}, e::Int64)::temporal_graph
     tee::Array{Tuple{Int64,Int64,Int64}} = Array{Tuple{Int64,Int64,Int64}}([])
     neighbors::Set{Int64} = Set{Int64}()
@@ -185,6 +187,7 @@ function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tup
     return temporal_graph(length(graph_id_to_ego_id), ego_temporal_edges, [], [])
 end
 
+# TO BE DELETED
 function average_ego_network_size(tg::temporal_graph)::Float64
     avg::Float64 = 0.0
     for e in 1:tg.num_nodes
@@ -192,4 +195,24 @@ function average_ego_network_size(tg::temporal_graph)::Float64
         avg = avg + en.num_nodes / tg.num_nodes
     end
     return avg
+end
+
+# TO BE USED
+function average_ego_network_size_tal_til(tg::temporal_graph)::Float64
+    tal = temporal_adjacency_list(tg)
+    til = temporal_incidency_list(tg)
+    avg::Float64 = 0.0
+    for e in 1:tg.num_nodes
+        en::temporal_graph = ego_network(tal, til, e)
+        avg = avg + en.num_nodes / tg.num_nodes
+    end
+    return avg
+end
+
+function underlying_graph(tg::temporal_graph)::SimpleDiGraph
+    ug::SimpleDiGraph = SimpleDiGraph(tg.num_nodes)
+    for e in 1:lastindex(tg.temporal_edges)
+        add_edge!(ug, tg.temporal_edges[e][1], tg.temporal_edges[e][2])
+    end
+    return ug
 end
