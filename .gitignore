@@ -32,10 +32,13 @@ graphs/all/
 graphs/www/
 
 # Centralities
+oldscores/
+oldtimes/
 scores/
 times/
 
 # Analysis
+evaluation/
 images/
 results/
 times_maserati/

@@ -210,7 +210,7 @@ end
 """
 Compute and save the values of all versions of ONBRA (based on the execution time of PREFIX) for one specified network
 """
-function onbras(fn::String, bigint::Bool)
+function execute_onbras(fn::String, bigint::Bool)
     type::Array{String} = ["equal", "twice", "half"]
     factor::Array{Float64} = [1, 2, 0.5]
     time_estimate_trials::Int64 = 100
