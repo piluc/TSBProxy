@@ -28,23 +28,24 @@ struct BI_BFS_ONBRA_DS
     end
 end
 
-function onbra_sample_size(nn::Array{String}, ns::Int64, big_int::Bool)
-    ss::Array{Int64} = zeros(Int64, length(nn))
-    for i in 1:lastindex(nn)
-        log("Processing " * nn[i])
-        tg::temporal_graph = load_temporal_graph("graphs/" * nn[i] * ".txt", " ")
-        _, t = onbra(tg, ns, Int64(round(ns / 10)), big_int)
-        f = open("times/" * nn[i] * "/time_tsb.txt", "r")
-        maxt::Float64 = parse(Float64, readline(f))
-        close(f)
-        if (maxt >= 0.0)
-            ss[i] = Int64(round(maxt / t[1]))
-            log("TSB time, one ONBRA BFS time, proposed sample size: " * string(maxt) * ", " * string(t[1]) * ", " * string(ss[i]))
+function onbra_sample_size(nn::String, ns::Int64, big_int::Bool, verb::Bool)
+    ss::Int64 = 0
+    if (verb)
+        log("Processing " * nn)
+    end
+    tg::temporal_graph = load_temporal_graph("graphs/" * nn * ".txt", " ")
+    _, t = onbra(tg, ns, Int64(round(ns / 10)), big_int)
+    f = open("times/" * nn * "/time_tsb.txt", "r")
+    maxt::Float64 = parse(Float64, readline(f))
+    close(f)
+    if (maxt >= 0.0)
+        ss = Int64(round(maxt / t[1]))
+        if (verb)
+            log("TSB time, one ONBRA BFS time, proposed sample size: " * string(maxt) * ", " * string(t[1]) * ", " * string(ss))
         end
     end
     return ss
 end
-
 function onbra_sample(tg::temporal_graph, sample_size::Int64)::Array{Tuple{Int64,Int64}}
     sample_pairs::Array{Tuple{Int64,Int64}} = []
     s::Int64 = 0
