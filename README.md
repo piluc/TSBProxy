@@ -42,7 +42,7 @@ The result in this case should be the following output.
 Temporal network: Workplace network
 ====================================================
 Number of nodes 92
-Number temporal of edges 9827
+Number temporal of edges 19654
 Number of unique time stamps 7104
 ====================================================
 ```
@@ -55,7 +55,7 @@ The values of the temporal shortest betweenness (in short TSB) of the graph `tg`
 tsb, t_tsb = temporal_shortest_betweenness(tg, 50, false);
 ```
 
-The second parameter specifies after how many processed nodes a message has to be printed on the console (in order to verify the status of the computation). If this parameter is `0`, then no ouptut is produced. The third parameter specifies whether the big integer implementation has to be used (in case there too many shortest paths). The execution of the above command should require less than two seconds. The values returned are the array of the TSB values and the execution time.
+The second parameter specifies after how many processed nodes a message has to be printed on the console (in order to verify the status of the computation). If this parameter is `0`, then no ouptut is produced. The third parameter specifies whether the big integer implementation has to be used (in case there too many shortest paths). The execution of the above command should require less than a minute. The values returned are the array of the TSB values and the execution time.
 
 The values of the temporal shortest betweenness and the execution time can be saved in the `scores` and the `times` directory, respectively, (included in the `TSBProxy` directory) as follows.
 
@@ -113,7 +113,7 @@ iproxy = intersection(tsb, proxy, 75);
 (in the case of ONBRA, the second instruction has to be susbstituted by the following one 
 
 ```
-proxy = read_onbra_centrality_values("scores/workplace/onbra.txt", max_ss, length(tsb))
+proxy = read_onbra_centrality_values("scores/workplace/onbra.txt", max_ss, length(tsb));
 ```
 where `max_ss` has to be substituted by the used sample size). The weighted Kendal tau and the Jaccard index corresponding to the first 50 nodes can then be printed by executing the following instructions.
 
@@ -121,7 +121,7 @@ where `max_ss` has to be substituted by the used sample size). The weighted Kend
 println(ktau[1], " ", jproxy[50], " ", iproxy[50]);
 ```
 
-In this example, the Kendall tau is approximately equal to 0.87, the Jaccard index is approximately equal to 0.79, and the intersection of the top 50 nodes is equalt to 44. Note that, in the case of ONBRA, these values would be approximately 0.7, 0.67, and 40 (clearly, these values can change because of different samples of pairs of nodes).
+In this example, the Kendall tau is approximately equal to 0.89, the Jaccard index is approximately equal to 0.82, and the intersection of the top 50 nodes is equalt to 45. Note that, in the case of ONBRA, these values would be approximately 0.92, 0.79, and 44 (clearly, these values can change because of different samples of pairs of nodes).
 
 ## A note on Kadabra
 
