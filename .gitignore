@@ -28,10 +28,6 @@ Project.toml
 .DS_Store
 
 # Graphs
-graphs/all/
-graphs/www/
-
-# Graphs
 seagraphs/
 oldgraphs/
 
