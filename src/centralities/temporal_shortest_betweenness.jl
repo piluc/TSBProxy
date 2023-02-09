@@ -1,5 +1,3 @@
-using DataStructures
-
 struct BFS_DS
     sigma::Array{UInt128}
     dist::Array{Int64}
@@ -120,14 +118,14 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64, 
                 end
                 if bfs_ds.dist_t[tni_w] == bfs_ds.dist_t[tni] + 1
                     if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
-                        println("Overflow occurred with source ", s)
+                        log("Overflow occurred with source " * s)
                         return [], 0.0
                     end
                     bfs_ds.sigma_t[tni_w] += bfs_ds.sigma_t[tni]
                     push!(bfs_ds.predecessors[tni_w], temporal_node)
                     if bfs_ds.dist_t[tni_w] == bfs_ds.dist[w]
                         if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
-                            println("Overflow occurred with source ", s)
+                            log("Overflow occurred with source " * s)
                             return [], 0.0
                         end
                         bfs_ds.sigma[w] += bfs_ds.sigma_t[tni]
@@ -155,7 +153,7 @@ function temporal_shortest_betweenness(tg::temporal_graph, verbose_step::Int64, 
         processed_so_far = processed_so_far + 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
-            println("TSB. Processed " * string(processed_so_far) * "/" * string(tg.num_nodes) * " nodes in " * finish_partial * " seconds")
+            log("TSB. Processed " * string(processed_so_far) * "/" * string(tg.num_nodes) * " nodes in " * finish_partial * " seconds")
         end
     end
     finish_total::Float64 = round(time() - start_time; digits=4)

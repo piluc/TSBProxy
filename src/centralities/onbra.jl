@@ -1,6 +1,3 @@
-using DataStructures
-using StatsBase
-
 struct BFS_ONBRA_DS
     sigma::Array{UInt128}
     dist::Array{Int64}
@@ -132,14 +129,14 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64, bigi
                     end
                     if bfs_ds.dist_t[tni_w] == bfs_ds.dist_t[tni] + 1
                         if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma_t[tni_w])
-                            println("Overflow occurred with sample (", s, ",", z, ")")
+                            log("Overflow occurred with sample (" * string(s) * "," * z * ")")
                             return [], 0.0
                         end
                         bfs_ds.sigma_t[tni_w] += bfs_ds.sigma_t[tni]
                         push!(bfs_ds.predecessors[tni_w], temporal_node)
                         if bfs_ds.dist_t[tni_w] == bfs_ds.dist[w]
                             if (!bigint && bfs_ds.sigma_t[tni] > typemax(UInt128) - bfs_ds.sigma[w])
-                                println("Overflow occurred with sample (", s, ",", z, ")")
+                                log("Overflow occurred with sample (" * string(s) * "," * string(z) * ")")
                                 return [], 0.0
                             end
                             bfs_ds.sigma[w] += bfs_ds.sigma_t[tni]
@@ -162,7 +159,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64, bigi
                 for pred in bfs_ds.predecessors[tni]
                     tni_w = tn_index[(pred[1], pred[2])]
                     if (!bigint && bfs_ds.sigma_z[tni_w] == typemax(UInt128))
-                        println("Overflow occurred with sample (", s, ",", z, ")")
+                        log("Overflow occurred with sample (" * string(s) * "," * string(z) * ")")
                         return [], 0.0
                     end
                     bfs_ds.sigma_z[tni_w] += 1
@@ -181,7 +178,7 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64, bigi
                 for pred in bfs_ds.predecessors[tni]
                     tni_w = tn_index[(pred[1], pred[2])]
                     if (!bigint && bfs_ds.sigma_z[tni_w] > typemax(UInt128) - bfs_ds.sigma_z[tni])
-                        println("Overflow occurred with sample (", s, ",", z, ")")
+                        log("Overflow occurred with sample (" * string(s) * "," * string(z) * ")")
                         return [], 0.0
                     end
                     bfs_ds.sigma_z[tni_w] += bfs_ds.sigma_z[tni]
@@ -196,27 +193,21 @@ function onbra(tg::temporal_graph, sample_size::Int64, verbose_step::Int64, bigi
         processed_so_far = processed_so_far + 1
         if (verbose_step > 0 && processed_so_far % verbose_step == 0)
             finish_partial::String = string(round(time() - start_time; digits=4))
-            println("ONBRA. Processed " * string(processed_so_far) * "/" * string(sample_size) * " pairs in " * finish_partial * " seconds")
+            log("ONBRA. Processed " * string(processed_so_far) * "/" * string(sample_size) * " pairs in " * finish_partial * " seconds")
         end
     end
     return tilde_b, (mean(exec_time), std(exec_time), time() - start_time)
 end
 
-# function onbra(tg::temporal_graph, sample_size::Int64, epsilon::Float64, eta::Float64, verbose_step::Int64)
-#     global_sample_size::Int64 = sample_size
-#     tilde_b::Array{Float64}, global_t::Float64 = onbra_sample(tg, sample_size, 0)
-#     error_bound::Float64 = theoretical_error_bound(tilde_b, global_sample_size, eta)
-#     println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
-#     t_b::Array{Float64} = []
-#     t::Float64 = 0.0
-#     while (error_bound > epsilon)
-#         t_b, t = onbra_sample(tg, sample_size, 0)
-#         append!(tilde_b, t_b)
-#         global_t += t
-#         global_sample_size += sample_size
-#         error_bound = theoretical_error_bound(tilde_b, global_sample_size, eta)
-#         println("Error bound " * string(error_bound) * " with sample size " * string(global_sample_size) * " (time " * string(global_t) * ")")
-#     end
-#     return tilde_b, global_t
-# end
-
+function onbra(nn::String, tg::temporal_graph, ss::Int64, verb::Int64, bigint::Bool)
+    onbra_v::Array{Float64} = zeros(tg.num_nodes)
+    onbra_t::Tuple{Float64,Float64,Float64} = (0.0, 0.0, 0.0)
+    if (verb > 0)
+        log("Computing ONBRA...")
+    end
+    onbra_v, onbra_t = onbra(tg, ss, verb, bigint)
+    if (verb > 0)
+        log("ONBRA with " * string(ss) * " seeds computed in " * string(round(onbra_t[3]; digits=4)) * " seconds")
+    end
+    save_onbra(nn, onbra_v, ss, onbra_t)
+end

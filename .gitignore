@@ -31,9 +31,17 @@ Project.toml
 graphs/all/
 graphs/www/
 
+# Graphs
+seagraphs/
+oldgraphs/
+
 # Centralities
+antonio/
 oldscores/
 oldtimes/
+unifilogs/
+unifiscores/
+unifitimes/
 scores/
 times/
 
@@ -43,3 +51,6 @@ images/
 results/
 times_maserati/
 www/
+
+# Others
+local/

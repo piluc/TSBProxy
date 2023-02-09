@@ -52,13 +52,13 @@ function load_temporal_graph(file_name::String, sep::String)
 end
 
 function print_stats(tg::temporal_graph; graph_name="anonymous")
-    println("====================================================")
-    println("Temporal network: " * graph_name)
-    println("====================================================")
-    println("Number of nodes " * string(tg.num_nodes))
-    println("Number temporal of edges " * string(length(tg.temporal_edges)))
-    println("Number of unique time stamps " * string(length(tg.file_time)))
-    println("====================================================")
+    log("====================================================")
+    log("Temporal network: " * graph_name)
+    log("====================================================")
+    log("Number of nodes " * string(tg.num_nodes))
+    log("Number temporal of edges " * string(length(tg.temporal_edges)))
+    log("Number of unique time stamps " * string(length(tg.file_time)))
+    log("====================================================")
 end
 
 function temporal_adjacency_list(tg::temporal_graph)::Array{Array{Tuple{Int64,Int64}}}
@@ -87,55 +87,6 @@ function temporal_incidency_list(tg::temporal_graph)::Array{Array{Tuple{Int64,In
     return tal
 end
 
-# TO BE DELETED
-function ego_network(tg::temporal_graph, e::Int64)::temporal_graph
-    temporal_ego_edges::Array{Tuple{Int64,Int64,Int64}} = Array{Tuple{Int64,Int64,Int64}}([])
-    current_node_id::Int64 = 2
-    graph_id::Vector{String} = Vector{String}([])
-    graph_id_to_ego_id::Dict{Int64,Int64} = Dict{Int64,Int64}()
-    graph_time::Vector{Int64} = Vector{Int64}([])
-    graph_time_to_ego_time::Dict{Int64,Int64} = Dict{Int64,Int64}()
-    i::Int64 = -1
-    current_time::Int64 = 1
-    graph_id_to_ego_id[e] = 1
-    push!(graph_id, tg.file_id[e])
-    for edge in tg.temporal_edges
-        if (edge[1] == e || edge[2] == e)
-            i = (edge[1] == e) ? 2 : 1
-            if (!haskey(graph_id_to_ego_id, edge[i]))
-                graph_id_to_ego_id[edge[i]] = current_node_id
-                push!(graph_id, tg.file_id[edge[i]])
-                current_node_id = current_node_id + 1
-            end
-            if (!haskey(graph_time_to_ego_time, edge[3]))
-                graph_time_to_ego_time[edge[3]] = current_time
-                push!(graph_time, edge[3])
-                current_time = current_time + 1
-            end
-        end
-    end
-    for edge in tg.temporal_edges
-        if (edge[1] != e && edge[2] != e && haskey(graph_id_to_ego_id, edge[1]) && haskey(graph_id_to_ego_id, edge[2]))
-            if (!haskey(graph_time_to_ego_time, edge[3]))
-                graph_time_to_ego_time[edge[3]] = current_time
-                push!(graph_time, edge[3])
-                current_time = current_time + 1
-            end
-        end
-    end
-    sort!(graph_time)
-    for t in 1:lastindex(graph_time)
-        graph_time_to_ego_time[graph_time[t]] = t
-    end
-    for edge in tg.temporal_edges
-        if (haskey(graph_id_to_ego_id, edge[1]) && haskey(graph_id_to_ego_id, edge[2]))
-            push!(temporal_ego_edges, (graph_id_to_ego_id[edge[1]], graph_id_to_ego_id[edge[2]], graph_time_to_ego_time[edge[3]]))
-        end
-    end
-    return temporal_graph(length(graph_id_to_ego_id), temporal_ego_edges, graph_id, graph_time)
-end
-
-# TO BE USED
 function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tuple{Int64,Int64}}}, e::Int64)::temporal_graph
     tee::Array{Tuple{Int64,Int64,Int64}} = Array{Tuple{Int64,Int64,Int64}}([])
     neighbors::Set{Int64} = Set{Int64}()
@@ -187,17 +138,6 @@ function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tup
     return temporal_graph(length(graph_id_to_ego_id), ego_temporal_edges, [], [])
 end
 
-# TO BE DELETED
-function average_ego_network_size(tg::temporal_graph)::Float64
-    avg::Float64 = 0.0
-    for e in 1:tg.num_nodes
-        en::temporal_graph = ego_network(tg, e)
-        avg = avg + en.num_nodes / tg.num_nodes
-    end
-    return avg
-end
-
-# TO BE USED
 function average_ego_network_size_tal_til(tg::temporal_graph)::Float64
     tal = temporal_adjacency_list(tg)
     til = temporal_incidency_list(tg)

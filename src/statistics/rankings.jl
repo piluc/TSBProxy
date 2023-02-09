@@ -1,5 +1,3 @@
-using StatsBase
-
 function spearman(a::Array{Float64}, b::Array{Float64})
     return corspearman(a, b)
 end
@@ -107,4 +105,18 @@ function min_h_k(nn::String, cn::String, ne::Int64, ss::Int64, max_k::Int64)::Ar
         min_h[k] = min_h[k] / ne
     end
     return min_h
+end
+
+function intersection(a::Array{Float64}, b::Array{Float64}, max_k::Int64)::Array{Float64}
+    @assert length(a) == length(b) "The two rankings have different number of elements"
+    if (max_k > length(a))
+        max_k = length(a)
+    end
+    ai::Vector{Int64} = sortperm(a, rev=true)
+    bi::Vector{Int64} = sortperm(b, rev=true)
+    inter::Array{Float64} = zeros(max_k)
+    for k in 1:max_k
+        inter[k] = length(intersect(Set(ai[1:k]), Set(bi[1:k])))
+    end
+    return inter
 end

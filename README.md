@@ -1,5 +1,5 @@
 # TSBProxy
-Repository associated to paper "Proxying Betweenness Centrality in Temporal Networks. A comparative Analysis"
+Repository associated to paper "Proxying Betweenness Centrality Rankings in Temporal Networks. A comparative Analysis"
 
 # Network file format
 
@@ -15,35 +15,35 @@ You can the use the newly generated file as input to the software.
 
 # How to use the software
 
-We assume that the `julia` REPL has been started within the directory `www` and the following command has been already executed.
+We assume that the `julia` REPL has been started within the directory `TSBProxy` and the following command has been already executed (after having installed all the required packages).
 
 ```
-include("tsb.jl");
+include("src/ProxyingTSB.jl");
 ```
 
 ## Reading the temporal graph
 
-Assuming that the file `animal.txt` is contained in the directory `graphs` included in the directory `www`, the corresponding temporal network can be loaded by executing the following command (note that, in this case, the separator between the three elements of a temporal edge is the space character).
+Assuming that the file `workplace.txt` is contained in the directory `graphs` included in the directory `TSBProxy`, the corresponding temporal network can be loaded by executing the following command (note that, in this case, the separator between the three elements of a temporal edge is the space character).
 
 ```
-tg = load_temporal_graph("graphs/animal.txt", " ");
+tg = load_temporal_graph("graphs/workplace.txt", " ");
 ```
 
 We can obtain some basic statistics about the temporal network by executing the following command.
 
 ```
-print_stats(tg, graph_name="Animal interaction network");
+print_stats(tg, graph_name="Workplace network");
 ```
 
 The result in this case should be the following output.
 
 ```
 ====================================================
-Temporal network: Animal interaction network
+Temporal network: Workplace network
 ====================================================
-Number of nodes 445
-Number temporal of edges 2669
-Number of unique time stamps 23
+Number of nodes 92
+Number temporal of edges 9827
+Number of unique time stamps 7104
 ====================================================
 ```
 
@@ -52,62 +52,77 @@ Number of unique time stamps 23
 The values of the temporal shortest betweenness (in short TSB) of the graph `tg` can be computed by executing the following command.
 
 ```
-tsb, t = temporal_shortest_betweenness(tg, 1);
+tsb, t_tsb = temporal_shortest_betweenness(tg, 50, false);
 ```
 
-The second parameter specifies after how many processed nodes a message has to be printed on the console (in order to verify the status of the computation). If this parameter is `0`, then no ouptut is produced. The execution of the above command should require less than one second/. The values returned are the array of the TSB values and the execution time.
+The second parameter specifies after how many processed nodes a message has to be printed on the console (in order to verify the status of the computation). If this parameter is `0`, then no ouptut is produced. The third parameter specifies whether the big integer implementation has to be used (in case there too many shortest paths). The execution of the above command should require less than two seconds. The values returned are the array of the TSB values and the execution time.
 
-The values of the temporal shortest betweenness and teh excution time can be saved in the `scores` and the `times` directory, respectively, (included in the `www` directory) as follows.
+The values of the temporal shortest betweenness and the execution time can be saved in the `scores` and the `times` directory, respectively, (included in the `TSBProxy` directory) as follows.
 
 ```
-save_results("animal", "tsb", tsb, t);
+save_results("workplace", "tsb", tsb, t_tsb);
 ```
 
 ## Computing the proxies
 
-Similarly to the computation of the TSB values, we can compute and save the values of the four proxies described in the paper, that is, the prefix foremost betweenness (in short, PREFIX), the temporal shortest ego-betweenness (in short, EGOTSB), the prefix foremost ego-betweenness (in short, EGOPREFIX), and the pass-through degree (in short, PTD).
+Similarly to the computation of the TSB values, we can compute and save the values of the proxies described in the paper, that is, the static betweenness (in short, BC), the prefix foremost betweenness (in short, PREFIX), the shortest ego-betweenness (in short, EGOTSB), the prefix foremost ego-betweenness (in short, EGOPREFIX), and the pass-through degree (in short, PTD).
 
 ```
-prefix, t = temporal_prefix_foremost_betweenness(tg, 100);
-save_results("animal", "prefix", prefix, t);
-egotsb, t = temporal_ego_betweenness_centrality(tg, 10.0, 100);
-save_results("animal", "egotsb", egotsb, t);
-egoprefix, t = temporal_ego_prefix_foremost_betweenness(tg, 10.0, 100);
-save_results("animal", "egoprefix", egoprefix, t);
+bc, t = betweenness(tg, true);
+save_results("workplace", "bc", bc, t);
+prefix, t = temporal_prefix_foremost_betweenness(tg, 50);
+save_results("workplace", "prefix", prefix, t);
+egotsb, t = temporal_ego_betweenness_centrality(tg, t_tsb, 50);
+save_results("workplace", "egotsb", egotsb, t);
+egoprefix, t = temporal_ego_prefix_foremost_betweenness(tg, t_tsb, 50);
+save_results("workplace", "egoprefix", egoprefix, t);
 ptd, t = pass_through_degree(tg);
-save_results("animal", "ptd", ptd, t);
+save_results("workplace", "ptd", ptd, t);
 ```
 
+The second parameter of the function `betweenness` indicates whether feedback messages have to be printed (in order to verify the status of the computation), while the second parameter of the functions `temporal_ego_betweenness_centrality` and `temporal_ego_prefix_foremost_betweenness` denotes the maximum execution time, which can be usually set equal to the execution time for computing the TSB, and the third parameter specifies after how many processed nodes a message has to be printed on the console (in order to verify the status of the computation). In our example, the computation of the EGOTSB took more time than the computation of the TSB and, hence, no EGOTSB value file is created.
 ## Computing the ONBRA approximation
 
-In the case of ONBRA, we have to decide the size of the sample of node pairs to be used to apply the sampling approximation method. In the paper, we consider three possible sample sizes which should made the execution time of the ONBRA values equal to (respectively, half of and twice) the executon time of PREFIX. To this aim, we first compute the average execution time of ONBRA with a sample of one pair.
+In the case of ONBRA, we have to decide the size of the sample of node pairs to be used to apply the sampling approximation method. In the paper, we consider the following strategy. We first estimate the execution time `avg_t` of a BFS with input a pair of nodes, by computing the average execution time over a random sample of pairs od nodes (tipically of size between 100 and 500). We then divide the execution time for computing the TSB by `avg_t`: the resulting value `max_ss` is an estimate of the sample size which would cause the ONBRA algorithm executes as long as the computation of TSB.
 
 ```
-onbra_v, t = onbra(tg, 10, 0);
+max_ss = onbra_sample_size("workplace", 100, false, false);
 ```
 
-The average execution time of ONBRA with a sample of one pair is given by `t[1]`. We then divide the execution time of PREFIX by this value in order to obtain the sample size which would cause an execution time approximately equal to PREFIX.
+The second parameter is the size of the sample to be used for computing the average time of a BFS, while the second and the third parameters specify whether the big integer data structure has to be used and the feedback messages have to be printed, respectively.
+
+We then execute ONBRA for a sample sample size between 1 and `max_ss`. In the following code we use a sample size equal to the maximum one.
 
 ```
-ss = Int64(round(read_time("animal", "prefix", -1.0)/t[1];digits=0));
+onbra("workplace", tg, max_ss, 50, false);
 ```
 
-We can now compute the ONBRA values with a sample size equal to `ss`, ``2*ss``, and ``0.5*ss``, respectively, and save the values and the times (for each sample_size, we perform 10 experiments).
+The centrality values for each pair in the sample are saved in one file within the directory `scores` and the statistics concerning the execution time are saved in another file within the directory `times`. 
+
+## Analysing the quality of the proxies
+
+We are now ready to evaluate the proxies in terms of their approximation of the TSB ranking. To this last aim, we use both the weighted Kendall tau correlation index between the proxie and the TSB rankings and the Jaccard index of the top k nodes in the proxie and the TSB rankings. For instance, in order to evaluate the static betweenness we can execute the following code.
 
 ```
-for e in 1:10 onbra_v, t = onbra(tg, ss, 0); save_onbra_results("animal", onbra_v, "equal", ss, e, t); end
-ss = 2*ss; for e in 1:10 onbra_v, t = onbra(tg, ss, 0); save_onbra_results("animal", onbra_v, "twice", ss, e, t); end
-ss = div(ss, 4); for e in 1:10 onbra_v, t = onbra(tg, ss, 0); save_onbra_results("animal", onbra_v, "half", ss, e, t); end
+tsb = read_centrality_values("scores/workplace/tsb.txt");
+proxy = read_centrality_values("scores/workplace/bc.txt");
+_, _, ktau = compute_correlations(tsb, proxy, false);
+jproxy = jaccard(tsb, proxy, 75);
+iproxy = intersection(tsb, proxy, 75);
+```
+(in the case of ONBRA, the second instruction has to be susbstituted by the following one 
+
+```
+proxy = read_onbra_centrality_values("scores/workplace/onbra.txt", max_ss, length(tsb))
+```
+where `max_ss` has to be substituted by the used sample size). The weighted Kendal tau and the Jaccard index corresponding to the first 50 nodes can then be printed by executing the following instructions.
+
+```
+println(ktau[1], " ", jproxy[50], " ", iproxy[50]);
 ```
 
-## Analysing the quality of the proxies and of ONBRA
+In this example, the Kendall tau is approximately equal to 0.87, the Jaccard index is approximately equal to 0.79, and the intersection of the top 50 nodes is equalt to 44. Note that, in the case of ONBRA, these values would be approximately 0.7, 0.67, and 40 (clearly, these values can change because of different samples of pairs of nodes).
 
-We are now ready to compare the four proxies and ONBRA both in terms of the execution times and in terms of their quality as a proxy. To this last aim, we use both the Spearman correlation index between the different rankings and the minimum h such that the first k nodes in the TSB rankings are includedin the first h position of the ranking of a proxy (we consider h=10, 50, and 100, and h equal to 0.01% of the number of nodes).
+## A note on Kadabra
 
-```
-analyse_all_but_onbra(["animal"]);
-analyse_all_onbras(["animal"]);
-merge_analysis(["animal"]);
-```
-
-After the execution of the above commands, a file `results.csv` is produced in the folder `evaluation/animal`. This file (which is a CSV file with separator `:`) contains all the comparative analysis results. 
+In the paper we also evaluate the quality of the KADABRA approximation of the static betweenness. However, in this case we used the implementation made available by the authors of KADABRA. If we want to compare KADABRA with the other proxies, we should first compute the KADABRA values (by respecting the node indices) and save them in the `kadabra.txt` file in the `scores` directory.
