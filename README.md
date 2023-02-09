@@ -3,15 +3,15 @@ Repository associated to paper "Proxying Betweenness Centrality Rankings in Temp
 
 # Network file format
 
-The temporal network file must contain one line for each temporal edge (a temporal edge is a triple `(u,v,t)`, where `u` and `v` are two nodes and `t` is one time in which the edge from `u` to `v` is available). All networks are considered as directed: hence, if the graph is undirected, then both the temporal edge `(u,v,t)` and the temporal edge `(v,u,t)` have to be included in the file. Nodes can be identified by any string (not necessarily a number), while times have to be integer values. The three elements of a temporal edge can be separated by any string, which can be specified while using the `load_temporal_graph` function (see below).
+The temporal network file must contain one line for each temporal edge (a temporal edge is a triple `(u,v,t)`, where `u` and `v` are two nodes and `t` is one time in which the edge from `u` to `v` is available). All networks are considered as directed: hence, if the graph is undirected, then both the temporal edge `(u,v,t)` and the temporal edge `(v,u,t)` have to be included in the file. Nodes can be identified by any string (not necessarily a number), while times have to be integer values. The three elements of a temporal edge can be separated by any string, which can be specified while using the `load_temporal_graph` function (see below). In the following, we assume that this string is just a space.
 
-The file *cannot* include duplicate lines (that is, two identical temporal edges). In case your file contains duplicate lines, you should first execute the following `bash` command.
+The file *cannot* include duplicate lines (that is, two identical temporal edges) or self-loop lines (that is, temporal edges from a node to itself). In case your file contains duplicate lines or self-loops lines, you should first execute the following `bash` command.
 
 ```
-sort <file_name>.txt | uniq > <new_file_name>.txt
+awk '($1!=$2)' <in_file_name> | sort | uniq > <out_file_name>.txt
 ```
 
-You can the use the newly generated file as input to the software.
+You can then use the newly generated file as input to the software.
 
 # How to use the software
 
