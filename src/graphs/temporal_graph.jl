@@ -138,15 +138,15 @@ function ego_network(tal::Array{Array{Tuple{Int64,Int64}}}, til::Array{Array{Tup
     return temporal_graph(length(graph_id_to_ego_id), ego_temporal_edges, [], [])
 end
 
-function average_ego_network_size_tal_til(tg::temporal_graph)::Float64
+function ego_network_size_stats(tg::temporal_graph)
     tal = temporal_adjacency_list(tg)
     til = temporal_incidency_list(tg)
-    avg::Float64 = 0.0
+    ens::Array{Int64} = zeros(Int64, tg.num_nodes)
     for e in 1:tg.num_nodes
-        en::temporal_graph = ego_network(tal, til, e)
-        avg = avg + en.num_nodes / tg.num_nodes
+        etg::temporal_graph = ego_network(tal, til, e)
+        ens[e] = etg.num_nodes
     end
-    return avg
+    return summarystats(ens)
 end
 
 function underlying_graph(tg::temporal_graph)::SimpleDiGraph

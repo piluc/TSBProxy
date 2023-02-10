@@ -28,8 +28,9 @@ Project.toml
 .DS_Store
 
 # Graphs
-seagraphs/
 oldgraphs/
+seagraphs/
+unifigraphs/
 
 # Centralities
 antonio/
