@@ -1,5 +1,5 @@
 # TSBProxy
-Repository associated to paper "Proxying Betweenness Centrality Rankings in Temporal Networks. A comparative Analysis"
+Repository associated to paper "Proxying Betweenness Centrality Rankings in Temporal Networks"
 
 # Network file format
 
@@ -125,4 +125,4 @@ In this example, the Kendall tau is approximately equal to 0.89, the Jaccard ind
 
 ## A note on Kadabra
 
-In the paper we also evaluate the quality of the KADABRA approximation of the static betweenness. However, in this case we used the implementation made available by the authors of KADABRA. If we want to compare KADABRA with the other proxies, we should first compute the KADABRA values (by respecting the node indices) and save them in the `kadabra.txt` file in the `scores` directory.
+If you want to compare the KADABRA approximation of the static betweenness with the other proxies, you should first compute the KADABRA values (by using the implementation made available by the authors of KADABRA and by respecting the node indices) and save them in the `kadabra.txt` file in the `scores` directory.
