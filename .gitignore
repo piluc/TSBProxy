@@ -29,6 +29,7 @@ Project.toml
 
 # Graphs
 oldgraphs/
+newgraphs/
 seagraphs/
 unifigraphs/
 
